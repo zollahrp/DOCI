@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 180" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="chickGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="60%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+
+    <linearGradient id="crestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#c2410c" />
+    </linearGradient>
+
+    <linearGradient id="techSwoopGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#00f2fe" />
+    </linearGradient>
+
+    <linearGradient id="navyTextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0b1d38" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#f59e0b" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- ICON EMBLEM (Left side: 160x160 centered at x=90, y=90) -->
+  <g transform="translate(15, 10)">
+    <!-- Ambient subtle background circle -->
+    <circle cx="80" cy="80" r="72" fill="#0b1d38" />
+    <circle cx="80" cy="80" r="70" fill="none" stroke="url(#techSwoopGrad)" stroke-width="2.5" opacity="0.4" />
+
+    <!-- AI Digital Orbit Ring / Data Arch -->
+    <path d="M 32 108 C 45 132, 95 142, 128 116 C 142 104, 148 88, 145 70" fill="none" stroke="url(#techSwoopGrad)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="1 10 35 10" />
+
+    <!-- Stylized Chick Body & Wing Base -->
+    <path d="M 45 110 C 35 90, 42 60, 68 45 C 80 38, 98 36, 112 44 C 122 51, 126 62, 124 75 C 122 88, 114 98, 102 106 C 85 118, 58 120, 45 110 Z" fill="url(#chickGrad)" filter="url(#softGlow)" />
+
+    <!-- Crest / Feather Tufts (Jengger / Bulu Halus DOC) -->
+    <path d="M 68 45 C 64 30, 75 22, 85 28 C 92 20, 105 22, 108 35 C 114 30, 122 34, 120 44 Z" fill="url(#crestGrad)" />
+
+    <!-- Cute Chick Beak (Paruh) -->
+    <path d="M 122 64 L 138 72 L 122 79 Z" fill="#ea580c" />
+
+    <!-- Chick Eye (Mata Bulat Pintar) -->
+    <circle cx="104" cy="58" r="7" fill="#0b1d38" />
+    <circle cx="106.5" cy="55.5" r="2.8" fill="#ffffff" />
+
+    <!-- Digital Tech Wave Wing Accent -->
+    <path d="M 52 102 C 65 92, 88 92, 104 104 C 92 114, 68 116, 52 102 Z" fill="url(#techSwoopGrad)" opacity="0.9" />
+
+    <!-- AI Node Dots -->
+    <circle cx="34" cy="106" r="4.5" fill="#00f2fe" />
+    <circle cx="144" cy="72" r="3.5" fill="#38bdf8" />
+    <circle cx="128" cy="116" r="3.5" fill="#10b981" />
+  </g>
+
+  <!-- LOGO TYPOGRAPHY (Right side) -->
+  <g transform="translate(195, 20)">
+    <!-- Main Brand Name: DOCI -->
+    <text x="0" y="72" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-size="70" font-weight="900" letter-spacing="-1.5" fill="#ffffff">
+      DOC<tspan fill="#f59e0b">I</tspan>
+    </text>
+
+    <!-- Subtitle: DOC Intelligence Assistant -->
+    <text x="3" y="104" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-size="18" font-weight="700" letter-spacing="1.2" fill="#38bdf8">
+      DOC INTELLIGENCE ASSISTANT
+    </text>
+
+    <!-- Tagline: Transparan. Cerdas. Berkelanjutan. -->
+    <g transform="translate(3, 118)">
+      <rect x="0" y="0" width="310" height="26" rx="13" fill="rgba(245, 158, 11, 0.15)" stroke="rgba(245, 158, 11, 0.4)" stroke-width="1" />
+      <text x="14" y="17" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-size="12" font-weight="700" fill="#fbbf24">
+        Transparan • Cerdas • Berkelanjutan
+      </text>
+    </g>
+  </g>
+</svg>

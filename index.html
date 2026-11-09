@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>DOCI - 3D Digital Twin & DOC Intelligence Assistant</title>
+    <meta name="description" content="DOCI: Prototipe 3D Digital Twin Kandang Broiler Terbuka & Sistem Pendukung Keputusan Alokasi DOC, Pasgar Score, Kesiapan Kandang & Kalkulator BEP.">
+    <meta name="theme-color" content="#060f1e">
+    <meta name="color-scheme" content="dark">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Plus Jakarta Sans for 100% clean, crisp, modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Three.js & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        doci: {
+                            dark: '#060f1e',
+                            navy: '#0b1d38',
+                            amber: '#f59e0b',
+                            orange: '#ea580c',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            blue: '#3b82f6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --safe-t: env(safe-area-inset-top, 0px);
+            --safe-b: env(safe-area-inset-bottom, 0px);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #060f1e;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
+        #canvas-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            touch-action: none;
+        }
+
+        /* High-Contrast, Clean Dashboard Panels */
+        .glass-panel {
+            background: rgba(13, 23, 42, 0.94);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-card {
+            background: rgba(22, 36, 65, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(245, 158, 11, 0.7);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 3D Floating Hotspot Labels */
+        .hotspot-label {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform: translate(-50%, -100%);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+            z-index: 20;
+            user-select: none;
+        }
+
+        .hotspot-label:hover {
+            transform: translate(-50%, -108%) scale(1.06);
+        }
+
+        .pulse-beacon {
+            position: absolute;
+            left: 50%;
+            bottom: -6px;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 9999px;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: translateX(-50%) scale(0.8); opacity: 1; }
+            70% { transform: translateX(-50%) scale(2.2); opacity: 0; }
+            100% { transform: translateX(-50%) scale(2.2); opacity: 0; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(6, 15, 30, 0.7);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.45);
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(245, 158, 11, 0.8);
+        }
+
+        .glow-amber {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.55);
+        }
+    </style>
+</head>
+<body class="select-none">
+
+    <!-- 3D WebGL Canvas Layer -->
+    <div id="canvas-container"></div>
+
+    <!-- 3D Hotspots DOM Overlay Layer -->
+    <div id="hotspots-overlay" class="fixed inset-0 pointer-events-none z-20 overflow-hidden"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="fixed inset-0 pointer-events-none z-30 flex flex-col justify-between p-3 md:p-5">
+
+        <!-- Top Header Navigation -->
+        <header class="w-full flex items-center justify-between pointer-events-auto">
+            <!-- Brand & Tagline -->
+            <div class="flex items-center gap-3">
+                <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3.5 shadow-xl">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg glow-amber">
+                        <i class="fa-solid fa-feather-pointed text-2xl text-slate-950"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-2xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200">DOCI</span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold shadow-sm">DOC Intelligence Assistant</span>
+                        </div>
+                        <p class="text-xs text-slate-200 font-medium">Transparan. Cerdas. Berkelanjutan. • <span class="text-amber-300 font-semibold">3D Digital Twin</span></p>
+                    </div>
+                </div>
+
+                <!-- Status Banner (Desktop) -->
+                <div class="hidden xl:flex items-center gap-2">
+                    <div class="glass-panel px-3.5 py-2.5 rounded-xl flex items-center gap-2.5 text-xs">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="text-slate-300">Status Alokasi:</span>
+                        <span class="text-emerald-400 font-extrabold text-sm">30.000 / 50.000 DOC (60%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Right Action Controls -->
+            <div class="flex items-center gap-2.5">
+                <!-- Camera Preset Switcher -->
+                <div class="glass-panel p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
+                    <button id="btn-cam-overview" onclick="flyToPreset('overview')" class="px-3.5 py-2 rounded-lg bg-amber-400 text-slate-950 font-extrabold shadow transition">
+                        <i class="fa-solid fa-globe mr-1.5"></i> Overview
+                    </button>
+                    <button id="btn-cam-brooder" onclick="flyToPreset('brooder')" class="px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-temperature-arrow-up mr-1 text-amber-400"></i> Pemanas & DOC
+                    </button>
+                    <button id="btn-cam-pasgar" onclick="flyToPreset('pasgar')" class="px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-clipboard-check mr-1 text-emerald-400"></i> Uji Pasgar
+                    </button>
+                    <button id="btn-cam-blower" onclick="flyToPreset('blower')" class="px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-fan mr-1 text-cyan-400"></i> Blower Fan
+                    </button>
+                </div>
+
+                <!-- Simulation Toggle Controls -->
+                <button onclick="toggleDayNight()" title="Ganti Waktu Siang/Malam" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-300 transition text-base">
+                    <i id="daynight-icon" class="fa-solid fa-sun"></i>
+                </button>
+                
+                <button onclick="toggleSound()" title="Audio Suara DOC" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-cyan-400 hover:text-cyan-300 transition text-base">
+                    <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+
+                <button onclick="openInfoModal()" title="Tentang DOCI" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-200 hover:text-white transition text-base">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Middle Area: Left Telemetry & Right Intelligence Decision Panes -->
+        <div class="w-full flex-1 flex justify-between items-start pointer-events-none mt-3 mb-3 overflow-hidden">
+            
+            <!-- Left Side Panel: Kandang IoT Telemetry & Kesiapan -->
+            <div id="left-telemetry-panel" class="pointer-events-auto w-80 max-h-full flex flex-col gap-3 overflow-y-auto pr-1 transition-all duration-300">
+                
+                <!-- Status Card -->
+                <div class="glass-panel p-4 rounded-2xl shadow-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-warehouse text-sm"></i> Unit Closed House 01
+                        </span>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold">Siap Chick-In</span>
+                    </div>
+                    
+                    <h3 class="text-base font-bold text-white leading-tight">Kandang Broiler Mandiri Sejahtera</h3>
+                    <p class="text-xs text-slate-300 mt-1">Kapasitas Maksimal: <strong class="text-amber-300 text-sm">15.000 Ekor</strong></p>
+
+                    <!-- Kandang Readiness Score Bar -->
+                    <div class="mt-3.5 p-3 rounded-xl bg-slate-900/90 border border-slate-700/80">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span class="text-slate-200 font-semibold flex items-center gap-1.5">
+                                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Kandang Readiness Score
+                            </span>
+                            <span class="font-extrabold text-emerald-400 text-sm">94/100 (SIAP)</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-2.5 rounded-full" style="width: 94%"></div>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">Pemanas stabil, alas sekam kering tebal, & biosekuriti steril.</p>
+                    </div>
+
+                    <!-- Live IoT Telemetry Gauges -->
+                    <div class="grid grid-cols-2 gap-2.5 mt-3">
+                        <div class="glass-card p-3 rounded-xl">
+                            <div class="flex items-center justify-between text-xs text-slate-300">
+                                <span>Suhu Brooder</span>
+                                <i class="fa-solid fa-temperature-high text-amber-400"></i>
+                            </div>
+                            <div class="text-xl font-extrabold text-amber-300 mt-1 font-sans">
+                                <span id="tele-temp">33.2</span>°C
+                            </div>
+                            <span class="text-[11px] text-emerald-400 font-bold">Ideal (32 - 34°C)</span>
+                        </div>
+
+                        <div class="glass-card p-3 rounded-xl">
+                            <div class="flex items-center justify-between text-xs text-slate-300">
+                                <span>Kelembaban RH</span>
+                                <i class="fa-solid fa-droplet text-cyan-400"></i>
+                            </div>
+                            <div class="text-xl font-extrabold text-cyan-300 mt-1 font-sans">
+                                <span id="tele-humidity">62</span>%
+                            </div>
+                            <span class="text-[11px] text-emerald-400 font-bold">Optimal (55 - 65%)</span>
+                        </div>
+
+                        <div class="glass-card p-3 rounded-xl">
+                            <div class="flex items-center justify-between text-xs text-slate-300">
+                                <span>Kadar Amonia</span>
+                                <i class="fa-solid fa-wind text-indigo-400"></i>
+                            </div>
+                            <div class="text-xl font-extrabold text-white mt-1 font-sans">
+                                <span id="tele-ammonia">7.5</span> ppm
+                            </div>
+                            <span class="text-[11px] text-emerald-400 font-bold">Aman (&lt;10 ppm)</span>
+                        </div>
+
+                        <div class="glass-card p-3 rounded-xl">
+                            <div class="flex items-center justify-between text-xs text-slate-300">
+                                <span>Exhaust Fan</span>
+                                <i class="fa-solid fa-fan text-blue-400"></i>
+                            </div>
+                            <div class="text-xl font-extrabold text-blue-300 mt-1 font-sans">
+                                4 Unit
+                            </div>
+                            <span class="text-[11px] text-emerald-400 font-bold">Sirkulasi Aktif</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Quick Trigger -->
+                <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between shadow-xl">
+                    <div>
+                        <p class="text-sm font-bold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-egg text-amber-400"></i> Tambah DOC (Chick-In)
+                        </p>
+                        <p class="text-xs text-slate-300">Lepaskan anak ayam 3D ke kandang</p>
+                    </div>
+                    <button onclick="spawnMoreChicks()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs hover:brightness-110 active:scale-95 transition flex items-center gap-2 shadow-lg glow-amber">
+                        <i class="fa-solid fa-plus text-sm"></i> + Chick-In
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side Panel: Clean, High-Contrast, Readable Decision Support Dashboard -->
+            <div id="right-dashboard-panel" class="pointer-events-auto w-full max-w-[480px] max-h-full flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl transition-all duration-300">
+                
+                <!-- Tab Header Nav (Readable, Clear, High Contrast) -->
+                <div class="flex items-center border-b border-slate-700/80 bg-slate-900/90 p-2 gap-1.5 overflow-x-auto text-xs font-bold">
+                    <button onclick="switchTab('allocation')" id="tab-btn-allocation" class="px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-2 whitespace-nowrap shadow">
+                        <i class="fa-solid fa-scale-balanced text-sm"></i> Smart Allocation
+                    </button>
+                    <button onclick="switchTab('pasgar')" id="tab-btn-pasgar" class="px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-vial-circle-check text-sm text-emerald-400"></i> Pasgar Score
+                    </button>
+                    <button onclick="switchTab('matching')" id="tab-btn-matching" class="px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-building-circle-check text-sm text-cyan-400"></i> Hatchery
+                    </button>
+                    <button onclick="switchTab('bep')" id="tab-btn-bep" class="px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-calculator text-sm text-amber-400"></i> Kalkulator BEP
+                    </button>
+                </div>
+
+                <!-- Tab Content Bodies -->
+                <div class="p-4 md:p-5 flex-1 overflow-y-auto space-y-4">
+                    
+                    <!-- TAB 1: SMART ALLOCATION RECOMMENDATION (KILLER FEATURE A) -->
+                    <div id="tab-content-allocation" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-brain text-amber-400"></i> Smart Quota Allocation
+                                </h4>
+                                <p class="text-xs text-slate-300 mt-0.5">Rekomendasi kuota DOC adil, objektif & berbasis data</p>
+                            </div>
+                            <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 font-bold">AI Explainable</span>
+                        </div>
+
+                        <!-- Macro Quota Stats (Clean & Clear) -->
+                        <div class="grid grid-cols-3 gap-2.5 text-center">
+                            <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80">
+                                <div class="text-xs text-slate-400 font-medium">Total Permintaan</div>
+                                <div class="text-lg font-extrabold text-white mt-1 font-sans">50.000</div>
+                                <div class="text-xs text-slate-400">DOC Ekor</div>
+                            </div>
+                            <div class="bg-slate-900/90 p-3 rounded-xl border border-amber-400/40">
+                                <div class="text-xs text-amber-300 font-semibold">Kuota Tersedia</div>
+                                <div class="text-lg font-extrabold text-amber-400 mt-1 font-sans" id="macro-quota-avail">30.000</div>
+                                <div class="text-xs text-amber-300 font-bold">60% Terpenuhi</div>
+                            </div>
+                            <div class="bg-slate-900/90 p-3 rounded-xl border border-emerald-400/40">
+                                <div class="text-xs text-emerald-300 font-semibold">Realisasi Lalu</div>
+                                <div class="text-lg font-extrabold text-emerald-400 mt-1 font-sans">95%</div>
+                                <div class="text-xs text-emerald-300 font-bold">Tepat Waktu</div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Quota Adjustment Slider -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 space-y-2.5">
+                            <div class="flex justify-between items-center text-xs">
+                                <label class="text-slate-200 font-semibold">Simulasi Kuota Pasokan Hatchery:</label>
+                                <span class="font-extrabold text-amber-400 text-sm font-sans" id="slider-quota-label">30.000 DOC</span>
+                            </div>
+                            <input type="range" id="input-quota-range" min="15000" max="50000" step="5000" value="30000" oninput="updateQuotaSimulation(this.value)" class="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg">
+                            <div class="flex justify-between text-xs text-slate-400 font-medium">
+                                <span>15.000 (Pasokan Ketat)</span>
+                                <span>30.000 (Normal)</span>
+                                <span>50.000 (Penuh)</span>
+                            </div>
+                        </div>
+
+                        <!-- Farmer Allocation Table with High-Contrast Layout -->
+                        <div class="space-y-2.5">
+                            <div class="text-xs font-bold text-slate-200 flex items-center justify-between">
+                                <span>Daftar Alokasi Anggota Koperasi:</span>
+                                <button type="button" class="text-cyan-400 text-xs font-semibold hover:underline flex items-center gap-1 cursor-pointer" onclick="showExplainabilityModal()">
+                                    <i class="fa-solid fa-circle-info"></i> Dasar Rumus AI
+                                </button>
+                            </div>
+
+                            <!-- List of Farmers (Populated by JavaScript) -->
+                            <div id="allocation-list" class="space-y-2.5">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button onclick="approveAllocation()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-extrabold text-sm hover:brightness-110 active:scale-98 transition flex items-center justify-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-check-double text-base"></i> Kunci & Terbitkan Hasil Alokasi
+                        </button>
+                    </div>
+
+                    <!-- TAB 2: DOC QUALITY INTELLIGENCE (PASGAR SCORE) -->
+                    <div id="tab-content-pasgar" class="hidden space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-star-half-stroke text-amber-400"></i> Pasgar Score Intelligence
+                                </h4>
+                                <p class="text-xs text-slate-300 mt-0.5">Pemeriksaan kualitas fisik DOC saat tiba di kandang</p>
+                            </div>
+                            <span id="pasgar-grade-pill" class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-extrabold">Grade A Prima</span>
+                        </div>
+
+                        <!-- Total Score Display -->
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-lg">
+                            <div>
+                                <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Pasgar Score</span>
+                                <div class="text-3xl font-extrabold text-emerald-400 font-sans mt-0.5" id="total-pasgar-val">9.5 / 10</div>
+                                <span class="text-xs text-emerald-300 font-bold" id="pasgar-verdict">Kualitas Bibit Sangat Bagus & Seragam</span>
+                            </div>
+                            <div class="w-14 h-14 rounded-full border-4 border-emerald-400 flex items-center justify-center bg-slate-950 text-emerald-400 text-2xl shadow">
+                                <i class="fa-solid fa-award"></i>
+                            </div>
+                        </div>
+
+                        <!-- Pasgar 5 Criteria Checklist -->
+                        <div class="space-y-2.5 text-xs">
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-white text-sm">1. Refleks Balik (Keaktifan)</span>
+                                    <p class="text-xs text-slate-400 mt-0.5">Mampu bangun & berdiri dalam &lt; 2 detik</p>
+                                </div>
+                                <select id="pasgar-refleks" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
+                                    <option value="2.0">Cepat &lt;2s (+2.0)</option>
+                                    <option value="1.0">Lambat 2-4s (+1.0)</option>
+                                    <option value="0.0">Lesu &gt;4s (0.0)</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-white text-sm">2. Kondisi Pusar (Navel)</span>
+                                    <p class="text-xs text-slate-400 mt-0.5">Tertutup bersih tanpa kerak hitam</p>
+                                </div>
+                                <select id="pasgar-pusar" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
+                                    <option value="2.0">Tertutup Bersih (+2.0)</option>
+                                    <option value="1.0">Kerak Kecil (+1.0)</option>
+                                    <option value="0.0">Terbuka/Basah (0.0)</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-white text-sm">3. Kaki & Sendi (Hocks)</span>
+                                    <p class="text-xs text-slate-400 mt-0.5">Lembab, segar, tidak merah/memar</p>
+                                </div>
+                                <select id="pasgar-kaki" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
+                                    <option value="2.0">Segar & Halus (+2.0)</option>
+                                    <option value="1.0">Sedikit Kering (+1.0)</option>
+                                    <option value="0.0">Memar Merah (0.0)</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-white text-sm">4. Paruh & Mata</span>
+                                    <p class="text-xs text-slate-400 mt-0.5">Mata bulat cerah, paruh bersih</p>
+                                </div>
+                                <select id="pasgar-paruh" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
+                                    <option value="2.0">Cerah Sempurna (+2.0)</option>
+                                    <option value="1.0">Sedikit Kerak (+1.0)</option>
+                                    <option value="0.0">Sayu/Lendir (0.0)</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-white text-sm">5. Perut / Kuning Telur</span>
+                                    <p class="text-xs text-slate-400 mt-0.5">Perut empuk, kuning telur terserap</p>
+                                </div>
+                                <select id="pasgar-perut" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
+                                    <option value="1.5">Empuk & Rata (+1.5)</option>
+                                    <option value="0.8">Agak Keras (+0.8)</option>
+                                    <option value="0.0">Bengkak Keras (0.0)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Simpan Bukti Pemeriksaan -->
+                        <button onclick="savePasgarAudit()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs hover:brightness-110 transition flex items-center justify-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-cloud-arrow-up text-sm"></i> Catat Hasil ke Riwayat Hatchery
+                        </button>
+                    </div>
+
+                    <!-- TAB 3: HATCHERY MATCHING (KILLER FEATURE B) -->
+                    <div id="tab-content-matching" class="hidden space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-magnifying-glass-chart text-cyan-400"></i> Rekomendasi Hatchery
+                                </h4>
+                                <p class="text-xs text-slate-300 mt-0.5">Pencocokan multi-kriteria berbasis rekam jejak</p>
+                            </div>
+                        </div>
+
+                        <!-- Hatchery Cards -->
+                        <div class="space-y-3">
+                            <div class="glass-card p-4 rounded-xl border border-amber-400/60 relative overflow-hidden shadow-lg">
+                                <div class="absolute -right-7 top-3 bg-amber-400 text-slate-950 text-[10px] font-black px-8 py-0.5 rotate-45 uppercase">Best Match</div>
+                                <div>
+                                    <h5 class="font-extrabold text-white text-sm">PT Charoen Pokphand Jaya</h5>
+                                    <p class="text-xs text-slate-300 mt-0.5"><i class="fa-solid fa-location-dot text-amber-400 mr-1.5"></i> Subang (Jarak 42 km • 1.5 Jam)</p>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
+                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
+                                        <span class="text-slate-400">Harga DOC</span>
+                                        <div class="font-bold text-white text-sm mt-0.5">Rp 6.850</div>
+                                    </div>
+                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
+                                        <span class="text-slate-400">Pasgar Histori</span>
+                                        <div class="font-bold text-emerald-400 text-sm mt-0.5">9.6 / 10</div>
+                                    </div>
+                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
+                                        <span class="text-slate-400">Survival Rate</span>
+                                        <div class="font-bold text-cyan-300 text-sm mt-0.5">98.4%</div>
+                                    </div>
+                                </div>
+                                <button onclick="selectHatchery('PT Charoen Pokphand Jaya')" class="w-full mt-3 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow">
+                                    Pilih Sebagai Rekomendasi Alokasi
+                                </button>
+                            </div>
+
+                            <div class="glass-card p-4 rounded-xl border border-slate-700 shadow-md">
+                                <div>
+                                    <h5 class="font-extrabold text-white text-sm">PT Japfa Comfeed Unit Purwakarta</h5>
+                                    <p class="text-xs text-slate-300 mt-0.5"><i class="fa-solid fa-location-dot text-cyan-400 mr-1.5"></i> Purwakarta (Jarak 68 km • 2.2 Jam)</p>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
+                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
+                                        <span class="text-slate-400">Harga DOC</span>
+                                        <div class="font-bold text-white text-sm mt-0.5">Rp 6.700</div>
+                                    </div>
+                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
+                                        <span class="text-slate-400">Pasgar Histori</span>
+                                        <div class="font-bold text-emerald-400 text-sm mt-0.5">9.2 / 10</div>
+                                    </div>
+                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
+                                        <span class="text-slate-400">Survival Rate</span>
+                                        <div class="font-bold text-cyan-300 text-sm mt-0.5">97.8%</div>
+                                    </div>
+                                </div>
+                                <button onclick="selectHatchery('PT Japfa Comfeed Unit Purwakarta')" class="w-full mt-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition">
+                                    Bandingkan Penawaran
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: BEP & CHICK-IN DECISION CALCULATOR -->
+                    <div id="tab-content-bep" class="hidden space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-calculator text-emerald-400"></i> BEP & Chick-In Decision
+                                </h4>
+                                <p class="text-xs text-slate-300 mt-0.5">Simulasi usaha: Isi sekarang atau tunda?</p>
+                            </div>
+                        </div>
+
+                        <!-- Decision Recommendation Banner -->
+                        <div id="bep-decision-banner" class="bg-emerald-500/20 border border-emerald-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow">
+                            <div class="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-xl">
+                                <i class="fa-solid fa-thumbs-up"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-extrabold text-emerald-300 uppercase tracking-wide">REKOMENDASI: CHICK-IN SEKARANG</div>
+                                <div class="text-xs text-slate-200 mt-0.5">Margin laba diproyeksikan aman (+Rp 2.400 / kg)</div>
+                            </div>
+                        </div>
+
+                        <!-- Calculator Inputs -->
+                        <div class="space-y-2.5 text-xs">
+                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                                <span class="text-slate-200 font-semibold">Harga DOC:</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-slate-400">Rp</span>
+                                    <input type="number" id="calc-doc-price" value="6850" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-white font-extrabold text-xs">
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                                <span class="text-slate-200 font-semibold">Harga Pakan:</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-slate-400">Rp/kg</span>
+                                    <input type="number" id="calc-feed-price" value="8900" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-white font-extrabold text-xs">
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                                <span class="text-slate-200 font-semibold">Target FCR:</span>
+                                <input type="number" step="0.05" id="calc-fcr" value="1.55" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-white font-extrabold text-xs">
+                            </div>
+
+                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                                <span class="text-slate-200 font-semibold">Prediksi Harga Livebird:</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-slate-400">Rp/kg</span>
+                                    <input type="number" id="calc-livebird-price" value="21500" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-emerald-400 font-extrabold text-xs">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Calculated BEP Metrics -->
+                        <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-700 space-y-2 text-xs">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">Biaya Pokok (HPP / BEP):</span>
+                                <span class="font-extrabold text-white text-sm font-sans" id="calc-bep-val">Rp 19.100 / kg</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300">Proyeksi Margin Laba:</span>
+                                <span class="font-extrabold text-emerald-400 text-sm font-sans" id="calc-margin-val">+Rp 2.400 / kg (+12.5%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Timeline: Workflow Steps (Gimana Cara Kerjanya) -->
+        <footer class="w-full pointer-events-auto">
+            <div class="glass-panel p-2.5 md:p-3 rounded-2xl flex items-center justify-between overflow-x-auto gap-3 shadow-xl">
+                <div class="flex items-center gap-1.5 md:gap-2 text-xs font-bold whitespace-nowrap">
+                    <span class="text-amber-400 font-extrabold uppercase tracking-wider text-[11px] mr-1 hidden sm:inline">Alur Ekosistem DOCI:</span>
+                    
+                    <button onclick="activateWorkflowStep(1)" id="step-btn-1" class="workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-amber-500/30 text-amber-300 flex items-center justify-center text-[10px] font-black">1</span> Truk Logistik
+                    </button>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+                    
+                    <button onclick="activateWorkflowStep(2)" id="step-btn-2" class="workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-amber-500/30 text-amber-300 flex items-center justify-center text-[10px] font-black">2</span> Uji Pasgar
+                    </button>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+
+                    <button onclick="activateWorkflowStep(3)" id="step-btn-3" class="workflow-btn px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-1.5 shadow glow-amber">
+                        <span class="w-4 h-4 rounded-full bg-slate-950 text-amber-300 flex items-center justify-center text-[10px] font-black">3</span> Brooder & DOC
+                    </button>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+
+                    <button onclick="activateWorkflowStep(4)" id="step-btn-4" class="workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-cyan-500/30 text-cyan-300 flex items-center justify-center text-[10px] font-black">4</span> Pakan & Minum
+                    </button>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+
+                    <button onclick="activateWorkflowStep(5)" id="step-btn-5" class="workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-blue-500/30 text-blue-300 flex items-center justify-center text-[10px] font-black">5</span> Blower Fan
+                    </button>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-500"></i>
+
+                    <button onclick="activateWorkflowStep(6)" id="step-btn-6" class="workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center text-[10px] font-black">6</span> Sensor IoT & DSS
+                    </button>
+                </div>
+
+                <!-- Live Chick Count In Brooder -->
+                <div class="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-700 text-xs">
+                    <span class="text-slate-300 font-medium">Populasi DOC Aktif:</span>
+                    <span id="live-doc-count" class="font-extrabold text-amber-400 text-sm">3.500 Ekor</span>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Explainability Formula Modal -->
+    <div id="modal-explain" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-panel p-6 rounded-2xl max-w-lg w-full border border-cyan-400 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <h3 class="font-extrabold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-code-compare text-cyan-400"></i> Rumus & Transparansi Alokasi DOCI
+                </h3>
+                <button onclick="closeExplainModal()" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+            <div class="mt-4 space-y-3.5 text-xs text-slate-200 leading-relaxed">
+                <p>Setiap rekomendasi kuota DOC dihitung secara objektif menggunakan formulasi multivariat:</p>
+                
+                <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-cyan-300 text-xs">
+                    Skor_Prioritas = (W1 × Rasio_Kapasitas) + (W2 × Realisasi_Historis) + (W3 × Skor_Kesiapan_Kandang)
+                </div>
+
+                <div class="space-y-2 pt-1 font-medium">
+                    <div class="flex justify-between"><span class="text-slate-300">• Bobot W1 (Kapasitas Kandang Terverifikasi):</span> <strong class="text-white font-extrabold">40%</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-300">• Bobot W2 (Tingkat Realisasi Siklus Sebelumnya):</span> <strong class="text-white font-extrabold">35%</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-300">• Bobot W3 (Skor Kesiapan Kandang / Sensor):</span> <strong class="text-white font-extrabold">25%</strong></div>
+                </div>
+
+                <div class="p-3 rounded-lg bg-amber-400/10 border border-amber-400/40 text-amber-200 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation mr-1.5 text-amber-300"></i> <strong>Catatan Integritas:</strong> Sistem DOCI adalah <em>Decision Support System</em>. Pengurus asosiasi atau koperasi tetap memegang kendali persetujuan akhir dan seluruh perubahan kuota tercatat di <em>Audit Log</em>.
+                </div>
+            </div>
+            <button onclick="closeExplainModal()" class="mt-5 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition">
+                Tutup Penjelasan
+            </button>
+        </div>
+    </div>
+
+    <!-- Product Framework & About Modal -->
+    <div id="modal-info" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-panel p-6 rounded-2xl max-w-xl w-full border border-amber-400 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center text-slate-950 font-black">
+                        <i class="fa-solid fa-feather-pointed text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-white text-base">Tentang DOCI (DOC Intelligence Assistant)</h3>
+                        <p class="text-xs text-amber-300 font-semibold">Transparan. Cerdas. Berkelanjutan.</p>
+                    </div>
+                </div>
+                <button onclick="closeInfoModal()" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+            <div class="mt-4 space-y-3.5 text-xs text-slate-200 leading-relaxed">
+                <p><strong>DOCI</strong> adalah platform digital dan 3D Digital Twin yang membantu peternak broiler mandiri serta asosiasi/koperasi mengelola kebutuhan dan distribusi <em>Day-Old Chick</em> (DOC) secara adil, terukur, dan berbasis data.</p>
+                
+                <h4 class="font-extrabold text-white text-sm border-l-2 border-amber-400 pl-2">4 Pilar Nilai DOCI:</h4>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-amber-400 block mb-0.5"><i class="fa-solid fa-check text-xs"></i> Transparansi Alokasi</span>
+                        <p class="text-xs text-slate-300">Pembagian kuota berbasis data riil tanpa tebak-tebakan.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-cyan-400 block mb-0.5"><i class="fa-solid fa-brain text-xs"></i> Keputusan Lebih Tepat</span>
+                        <p class="text-xs text-slate-300">Kalkulator BEP & sinyal harga pasar sebelum chick-in.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-emerald-400 block mb-0.5"><i class="fa-solid fa-warehouse text-xs"></i> Kandang Lebih Siap</span>
+                        <p class="text-xs text-slate-300">Cek skor kesiapan kandang via sensor IoT terhubung.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-orange-400 block mb-0.5"><i class="fa-solid fa-arrow-trend-up text-xs"></i> Kualitas Terpantau</span>
+                        <p class="text-xs text-slate-300">Evaluasi Pasgar Score & riwayat performa hatchery.</p>
+                    </div>
+                </div>
+
+                <h4 class="font-extrabold text-white text-sm border-l-2 border-cyan-400 pl-2">Navigasi 3D Digital Twin:</h4>
+                <ul class="list-disc list-inside space-y-1.5 text-slate-300 text-xs">
+                    <li><strong>Drag Mouse Kiri / Sentuh:</strong> Putar sudut pandang 3D (Orbit Controls).</li>
+                    <li><strong>Scroll / Pinch:</strong> Zoom in & zoom out kandang.</li>
+                    <li><strong>Klik Label Hotspot 3D:</strong> Arahkan kamera otomatis ke komponen kandang & cara kerjanya.</li>
+                </ul>
+            </div>
+            <button onclick="closeInfoModal()" class="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs transition shadow-lg">
+                Mengerti & Mulai Eksplorasi
+            </button>
+        </div>
+    </div>
+
+    <!-- Three.js 3D Engine -->
+    <script>
+        let scene, camera, renderer, controls;
+        let podiumGroup, brooderGroup, heatLight, heatParticles;
+        let docChicks = [];
+        let exhaustFans = [];
+        let airFlowParticles;
+        let iotSensorLed;
+        let isNight = false;
+        let dirLight, hemiLight;
+
+        // Camera transition variables
+        let camTargetPos = new THREE.Vector3(0, 8.5, 14.5);
+        let camLookAtTarget = new THREE.Vector3(0, 0.8, 0);
+        let camMoving = false;
+
+        // Sound System via Web Audio API (Baby chick chirping synthesizer)
+        let soundActive = true;
+        let audioCtx = null;
+
+        function playChickChirp() {
+            if (!soundActive) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(3100, now);
+                osc.frequency.exponentialRampToValueAtTime(4500, now + 0.04);
+                osc.frequency.exponentialRampToValueAtTime(3400, now + 0.09);
+                
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.linearRampToValueAtTime(0.09, now + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+
+                setTimeout(() => {
+                    if (!audioCtx || !soundActive) return;
+                    const t2 = audioCtx.currentTime;
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(3300, t2);
+                    osc2.frequency.exponentialRampToValueAtTime(4700, t2 + 0.03);
+                    osc2.frequency.exponentialRampToValueAtTime(3600, t2 + 0.08);
+                    
+                    gain2.gain.setValueAtTime(0.01, t2);
+                    gain2.gain.linearRampToValueAtTime(0.08, t2 + 0.02);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.09);
+                    
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.start(t2);
+                    osc2.stop(t2 + 0.09);
+                }, 110);
+            } catch(e) {}
+        }
+
+        // Hotspots Data with Leader Lines & Detailed Descriptions
+        const hotspotsData = [
+            {
+                id: 'spot-truck',
+                name: '1. Truk Logistik DOC',
+                badge: 'Penerimaan',
+                color: 'amber',
+                pos: new THREE.Vector3(-6.8, 1.2, 3.8),
+                camPos: new THREE.Vector3(-4.8, 3.0, 7.8),
+                camTarget: new THREE.Vector3(-6.8, 1.0, 3.8),
+                desc: 'Armada logistik berpendingin (24-26°C) mengantarkan box DOC langsung dari hatchery terpilih.'
+            },
+            {
+                id: 'spot-pasgar',
+                name: '2. Meja Uji Pasgar Score',
+                badge: 'Quality Control',
+                color: 'emerald',
+                pos: new THREE.Vector3(-3.2, 0.9, 4.0),
+                camPos: new THREE.Vector3(-2.0, 2.2, 6.2),
+                camTarget: new THREE.Vector3(-3.2, 0.9, 4.0),
+                desc: 'Pemeriksaan 5 parameter Pasgar (refleks balik, pusar, kaki, paruh, sisa kuning telur) sebelum masuk kandang.'
+            },
+            {
+                id: 'spot-brooder',
+                name: '3. Brooder Ring & Pemanas Gas',
+                badge: 'Brooding Zone',
+                color: 'amber',
+                pos: new THREE.Vector3(0, 1.6, 0),
+                camPos: new THREE.Vector3(0, 4.2, 5.0),
+                camTarget: new THREE.Vector3(0, 0.6, 0),
+                desc: 'Radiant Gas Ole heater menjaga suhu stabil 32-34°C untuk kenyamanan ratusan anak ayam DOC.'
+            },
+            {
+                id: 'spot-feedwater',
+                name: '4. Jalur Pakan & Nipple Otomatis',
+                badge: 'Nutrisi Otomatis',
+                color: 'cyan',
+                pos: new THREE.Vector3(2.4, 1.4, -0.5),
+                camPos: new THREE.Vector3(3.2, 2.8, 2.8),
+                camTarget: new THREE.Vector3(2.4, 0.8, -0.5),
+                desc: 'Piring pakan (pan feeder) otomatis & puting air minum (nipple drinker) higienis bebas bakteri.'
+            },
+            {
+                id: 'spot-blower',
+                name: '5. Exhaust Fan Tunnel',
+                badge: 'Sirkulasi Udara',
+                color: 'blue',
+                pos: new THREE.Vector3(0, 2.2, -6.8),
+                camPos: new THREE.Vector3(0, 3.5, -2.5),
+                camTarget: new THREE.Vector3(0, 1.8, -6.8),
+                desc: '4 Unit Kipas Blower 50" membuang gas amonia keluar kandang untuk menjaga udara tetap segar.'
+            },
+            {
+                id: 'spot-iot',
+                name: '6. Gateway Sensor IoT DOCI',
+                badge: 'Smart Farm Hub',
+                color: 'emerald',
+                pos: new THREE.Vector3(5.2, 1.6, 0),
+                camPos: new THREE.Vector3(4.0, 2.8, 3.2),
+                camTarget: new THREE.Vector3(5.2, 1.4, 0),
+                desc: 'Multi-sensor nirkabel memancarkan data suhu, kelembaban, dan amonia ke AI DOCI secara real-time.'
+            }
+        ];
+
+        // Farmers List
+        let farmersData = [
+            { id: 1, name: 'Peternak Sejahtera (Bpk. Mulyadi)', capacity: 15000, request: 15000, allocated: 9000, readiness: 94, history: 98, priority: 92 },
+            { id: 2, name: 'Berkah Unggas (Ibu Siti)', capacity: 12000, request: 12000, allocated: 7200, readiness: 91, history: 95, priority: 88 },
+            { id: 3, name: 'Jaya Farm Subang (Bpk. Hendra)', capacity: 10000, request: 10000, allocated: 6000, readiness: 96, history: 92, priority: 85 },
+            { id: 4, name: 'Makmur Broiler (Bpk. Ridwan)', capacity: 8000, request: 8000, allocated: 4800, readiness: 88, history: 90, priority: 79 },
+            { id: 5, name: 'Kemitraan Mandiri Sejati', capacity: 5000, request: 5000, allocated: 3000, readiness: 85, history: 86, priority: 73 }
+        ];
+
+        // Initialize Three.js Scene
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x060f1e);
+            scene.fog = new THREE.FogExp2(0x060f1e, 0.024);
+
+            camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+            camera.position.set(0, 8.5, 14.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05;
+            controls.minDistance = 3.5;
+            controls.maxDistance = 26;
+            controls.target.copy(camLookAtTarget);
+
+            controls.addEventListener('start', () => {
+                camMoving = false;
+            });
+
+            setupLighting();
+
+            buildCutawayBarnDiorama();
+            buildBrooderHeatingSystem();
+            buildFeedAndWaterLines();
+            buildExhaustBlowerTunnel();
+            buildLogisticsTruckAndLoading();
+            buildPasgarInspectionStation();
+            buildIoTSmartGateway();
+            buildProcessFlowParticles();
+
+            spawnChicks(55);
+
+            initHotspotsDOM();
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            renderAllocationTable();
+            calcBEP();
+        }
+
+        function setupLighting() {
+            hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x060f1e, 0.8);
+            scene.add(hemiLight);
+
+            dirLight = new THREE.DirectionalLight(0xffedd5, 1.35);
+            dirLight.position.set(10, 18, 12);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 40;
+            const d = 14;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            const cyanRim = new THREE.DirectionalLight(0x06b6d4, 0.4);
+            cyanRim.position.set(-12, 10, -10);
+            scene.add(cyanRim);
+        }
+
+        function buildCutawayBarnDiorama() {
+            podiumGroup = new THREE.Group();
+            scene.add(podiumGroup);
+
+            const plinthGeo = new THREE.BoxGeometry(16, 0.5, 16);
+            const plinthMat = new THREE.MeshStandardMaterial({
+                color: 0x0c1e38,
+                roughness: 0.5,
+                metalness: 0.2
+            });
+            const plinth = new THREE.Mesh(plinthGeo, plinthMat);
+            plinth.position.y = -0.25;
+            plinth.receiveShadow = true;
+            podiumGroup.add(plinth);
+
+            const stripGeo = new THREE.BoxGeometry(16.1, 0.08, 16.1);
+            const stripMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
+            const strip = new THREE.Mesh(stripGeo, stripMat);
+            strip.position.y = -0.05;
+            podiumGroup.add(strip);
+
+            const litterGeo = new THREE.BoxGeometry(11, 0.1, 13.5);
+            const litterMat = new THREE.MeshStandardMaterial({
+                color: 0xca8a04,
+                roughness: 0.95,
+                metalness: 0.05
+            });
+            const litter = new THREE.Mesh(litterGeo, litterMat);
+            litter.position.set(0.8, 0.05, -0.2);
+            litter.receiveShadow = true;
+            podiumGroup.add(litter);
+
+            const apronGeo = new THREE.BoxGeometry(4.2, 0.1, 13.5);
+            const apronMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.8
+            });
+            const apron = new THREE.Mesh(apronGeo, apronMat);
+            apron.position.set(-6.2, 0.05, -0.2);
+            apron.receiveShadow = true;
+            podiumGroup.add(apron);
+
+            const lineGeo = new THREE.BoxGeometry(0.2, 0.11, 13.5);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+            const safetyLine = new THREE.Mesh(lineGeo, lineMat);
+            safetyLine.position.set(-4.3, 0.06, -0.2);
+            podiumGroup.add(safetyLine);
+
+            const backWallGeo = new THREE.BoxGeometry(11.4, 3.8, 0.3);
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.6,
+                metalness: 0.2
+            });
+            const backWall = new THREE.Mesh(backWallGeo, wallMat);
+            backWall.position.set(0.8, 1.9, -6.9);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
+            podiumGroup.add(backWall);
+
+            const trussMat = new THREE.MeshStandardMaterial({
+                color: 0x0284c7,
+                roughness: 0.4,
+                metalness: 0.7
+            });
+
+            for (let z = -5.5; z <= 5.5; z += 3.6) {
+                const beam = new THREE.Mesh(new THREE.BoxGeometry(11.4, 0.16, 0.16), trussMat);
+                beam.position.set(0.8, 3.8, z);
+                podiumGroup.add(beam);
+
+                [-4.7, 6.3].forEach(x => {
+                    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.8), trussMat);
+                    col.position.set(x, 1.9, z);
+                    podiumGroup.add(col);
+                });
+
+                const rafterL = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.1, 0.1), trussMat);
+                rafterL.position.set(-1.8, 4.3, z);
+                rafterL.rotation.z = Math.PI / 16;
+                podiumGroup.add(rafterL);
+
+                const rafterR = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.1, 0.1), trussMat);
+                rafterR.position.set(3.4, 4.3, z);
+                rafterR.rotation.z = -Math.PI / 16;
+                podiumGroup.add(rafterR);
+            }
+        }
+
+        function buildBrooderHeatingSystem() {
+            brooderGroup = new THREE.Group();
+            brooderGroup.position.set(0, 0.1, 0);
+            scene.add(brooderGroup);
+
+            const ringGeo = new THREE.CylinderGeometry(3.6, 3.6, 0.45, 36, 1, true);
+            const ringMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                roughness: 0.5,
+                metalness: 0.3,
+                side: THREE.DoubleSide
+            });
+            const chickGuard = new THREE.Mesh(ringGeo, ringMat);
+            chickGuard.position.y = 0.225;
+            brooderGroup.add(chickGuard);
+
+            const canopyGeo = new THREE.ConeGeometry(1.2, 0.65, 24, 1, true);
+            const canopyMat = new THREE.MeshStandardMaterial({
+                color: 0xd97706,
+                roughness: 0.2,
+                metalness: 0.9,
+                side: THREE.DoubleSide
+            });
+            const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+            canopy.position.set(0, 2.3, 0);
+            brooderGroup.add(canopy);
+
+            const coreGeo = new THREE.SphereGeometry(0.32, 16, 16);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            core.position.set(0, 2.1, 0);
+            brooderGroup.add(core);
+
+            const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.5), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
+            cable.position.set(0, 3.05, 0);
+            brooderGroup.add(cable);
+
+            heatLight = new THREE.PointLight(0xff8800, 3.0, 8.5, 1.2);
+            heatLight.position.set(0, 2.1, 0);
+            heatLight.castShadow = true;
+            brooderGroup.add(heatLight);
+
+            const babyTrayMat = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
+            const waterCupMat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.08, 16), babyTrayMat);
+                tray.position.set(Math.cos(angle) * 2.2, 0.04, Math.sin(angle) * 2.2);
+                brooderGroup.add(tray);
+
+                const bell = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.3, 12), waterCupMat);
+                bell.position.set(Math.cos(angle + 0.5) * 2.5, 0.15, Math.sin(angle + 0.5) * 2.5);
+                brooderGroup.add(bell);
+            }
+        }
+
+        function buildFeedAndWaterLines() {
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.3, metalness: 0.8 });
+            const panMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 });
+
+            const feedPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 12, 12), pipeMat);
+            feedPipe.rotation.x = Math.PI / 2;
+            feedPipe.position.set(3.4, 1.1, -0.2);
+            podiumGroup.add(feedPipe);
+
+            for (let z = -5; z <= 5; z += 2.0) {
+                const pan = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.2, 0.12, 16), panMat);
+                pan.position.set(3.4, 0.5, z);
+                podiumGroup.add(pan);
+
+                const drop = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5), pipeMat);
+                drop.position.set(3.4, 0.8, z);
+                podiumGroup.add(drop);
+            }
+
+            const drinkPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 12, 12), new THREE.MeshStandardMaterial({ color: 0x38bdf8 }));
+            drinkPipe.rotation.x = Math.PI / 2;
+            drinkPipe.position.set(-2.2, 1.2, -0.2);
+            podiumGroup.add(drinkPipe);
+        }
+
+        function buildExhaustBlowerTunnel() {
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.8 });
+            const bladeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.2, metalness: 0.9 });
+
+            const fanPositions = [
+                { x: -2.8, y: 1.8 },
+                { x: -0.4, y: 1.8 },
+                { x: 2.0, y: 1.8 },
+                { x: 4.4, y: 1.8 }
+            ];
+
+            fanPositions.forEach(p => {
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 0.35), frameMat);
+                frame.position.set(p.x, p.y, -6.8);
+                podiumGroup.add(frame);
+
+                const rotor = new THREE.Group();
+                rotor.position.set(p.x, p.y, -6.65);
+
+                const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 16), bladeMat);
+                hub.rotation.x = Math.PI / 2;
+                rotor.add(hub);
+
+                for (let b = 0; b < 6; b++) {
+                    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.02), bladeMat);
+                    blade.position.y = 0.32;
+                    blade.rotation.z = (b / 6) * Math.PI * 2;
+                    blade.rotation.y = 0.35;
+                    rotor.add(blade);
+                }
+
+                podiumGroup.add(rotor);
+                exhaustFans.push(rotor);
+            });
+        }
+
+        function buildLogisticsTruckAndLoading() {
+            const truckGroup = new THREE.Group();
+            truckGroup.position.set(-6.8, 0.1, 3.5);
+            truckGroup.rotation.y = Math.PI * 0.12;
+            scene.add(truckGroup);
+
+            const cab = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.6, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 }));
+            cab.position.set(0, 0.9, 1.8);
+            truckGroup.add(cab);
+
+            const cargo = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.2, 3.4), new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.15 }));
+            cargo.position.set(0, 1.25, -0.8);
+            cargo.castShadow = true;
+            truckGroup.add(cargo);
+
+            const ac = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.4, 0.7), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+            ac.position.set(0, 2.45, 0.4);
+            truckGroup.add(ac);
+
+            [-1.0, 1.0].forEach(x => {
+                [1.6, -0.4, -1.8].forEach(z => {
+                    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.25, 16), new THREE.MeshStandardMaterial({ color: 0x111827 }));
+                    w.rotation.z = Math.PI / 2;
+                    w.position.set(x, 0.35, z);
+                    truckGroup.add(w);
+                });
+            });
+
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.7 });
+            for (let bx = 0; bx < 3; bx++) {
+                for (let by = 0; by < 2; by++) {
+                    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.25, 0.55), boxMat);
+                    crate.position.set(-4.6 + bx * 0.75, 0.2 + by * 0.26, 1.6);
+                    scene.add(crate);
+                }
+            }
+        }
+
+        function buildPasgarInspectionStation() {
+            const bench = new THREE.Group();
+            bench.position.set(-3.2, 0.1, 4.2);
+            scene.add(bench);
+
+            const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 1.1), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 }));
+            top.position.y = 0.8;
+            bench.add(top);
+
+            [-0.8, 0.8].forEach(x => {
+                [-0.45, 0.45].forEach(z => {
+                    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.8), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+                    leg.position.set(x, 0.4, z);
+                    bench.add(leg);
+                });
+            });
+
+            const scale = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.05, 0.38), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
+            scale.position.set(-0.4, 0.86, 0.1);
+            bench.add(scale);
+
+            const sampleChick = createChickMesh();
+            sampleChick.position.set(-0.4, 0.91, 0.1);
+            bench.add(sampleChick);
+
+            const sheet = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.02, 0.45), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
+            sheet.position.set(0.4, 0.85, 0.1);
+            bench.add(sheet);
+        }
+
+        function buildIoTSmartGateway() {
+            const hub = new THREE.Group();
+            hub.position.set(5.2, 0.1, 0);
+            scene.add(hub);
+
+            const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.5), new THREE.MeshStandardMaterial({ color: 0x38bdf8 }));
+            mast.position.y = 1.25;
+            hub.add(mast);
+
+            const box = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.35), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }));
+            box.position.y = 2.0;
+            hub.add(box);
+
+            const led = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+            led.position.set(0, 2.1, 0.18);
+            hub.add(led);
+            iotSensorLed = led;
+        }
+
+        function buildProcessFlowParticles() {
+            const heatCount = 40;
+            const heatGeo = new THREE.BufferGeometry();
+            const heatPos = new Float32Array(heatCount * 3);
+
+            for (let i = 0; i < heatCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * 2.8;
+                heatPos[i * 3] = Math.cos(angle) * r;
+                heatPos[i * 3 + 1] = 0.4 + Math.random() * 2.2;
+                heatPos[i * 3 + 2] = Math.sin(angle) * r;
+            }
+            heatGeo.setAttribute('position', new THREE.BufferAttribute(heatPos, 3));
+            const heatMat = new THREE.PointsMaterial({
+                color: 0xf59e0b,
+                size: 0.18,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+            heatParticles = new THREE.Points(heatGeo, heatMat);
+            scene.add(heatParticles);
+
+            const airCount = 60;
+            const airGeo = new THREE.BufferGeometry();
+            const airPos = new Float32Array(airCount * 3);
+
+            for (let i = 0; i < airCount; i++) {
+                airPos[i * 3] = -4.0 + Math.random() * 9.5;
+                airPos[i * 3 + 1] = 0.5 + Math.random() * 2.5;
+                airPos[i * 3 + 2] = 5.0 - Math.random() * 11.5;
+            }
+            airGeo.setAttribute('position', new THREE.BufferAttribute(airPos, 3));
+            const airMat = new THREE.PointsMaterial({
+                color: 0x38bdf8,
+                size: 0.12,
+                transparent: true,
+                opacity: 0.5
+            });
+            airFlowParticles = new THREE.Points(airGeo, airMat);
+            scene.add(airFlowParticles);
+        }
+
+        function createChickMesh() {
+            const chick = new THREE.Group();
+
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0xfacc15,
+                roughness: 0.8
+            });
+            const beakMat = new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.4 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), bodyMat);
+            body.scale.set(1.0, 0.9, 1.15);
+            body.position.y = 0.16;
+            body.castShadow = true;
+            chick.add(body);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), bodyMat);
+            head.position.set(0, 0.28, 0.1);
+            head.castShadow = true;
+            chick.add(head);
+
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.08, 8), beakMat);
+            beak.rotation.x = Math.PI / 2;
+            beak.position.set(0, 0.26, 0.22);
+            chick.add(beak);
+
+            [-0.07, 0.07].forEach(x => {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), eyeMat);
+                eye.position.set(x, 0.30, 0.18);
+                chick.add(eye);
+            });
+
+            [-0.15, 0.15].forEach(x => {
+                const wing = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.16), bodyMat);
+                wing.position.set(x, 0.17, 0);
+                wing.rotation.z = x > 0 ? -0.2 : 0.2;
+                chick.add(wing);
+            });
+
+            return chick;
+        }
+
+        function spawnChicks(count) {
+            for (let i = 0; i < count; i++) {
+                const chick = createChickMesh();
+
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 3.2;
+
+                chick.position.set(
+                    Math.cos(angle) * radius,
+                    0.05,
+                    Math.sin(angle) * radius
+                );
+
+                chick.userData = {
+                    baseX: chick.position.x,
+                    baseZ: chick.position.z,
+                    speed: 0.3 + Math.random() * 0.5,
+                    peckTimer: Math.random() * 2,
+                    angle: angle,
+                    radius: radius,
+                    targetRot: Math.random() * Math.PI * 2
+                };
+
+                scene.add(chick);
+                docChicks.push(chick);
+            }
+        }
+
+        function spawnMoreChicks() {
+            spawnChicks(25);
+            playChickChirp();
+
+            const el = document.getElementById('live-doc-count');
+            const current = parseInt(el.innerText.replace(/[^0-9]/g, '')) || 3500;
+            const updated = current + 500;
+            el.innerText = updated.toLocaleString('id-ID') + ' Ekor';
+
+            showToast('Chick-In Sukses: +500 DOC masuk ke lingkaran pemanas!');
+        }
+
+        function initHotspotsDOM() {
+            const container = document.getElementById('hotspots-overlay');
+            container.innerHTML = '';
+
+            hotspotsData.forEach(h => {
+                const el = document.createElement('div');
+                el.className = 'hotspot-label';
+                el.id = h.id;
+                
+                el.innerHTML = `
+                    <div class="glass-panel px-3.5 py-2 rounded-xl border border-amber-400/60 shadow-2xl flex items-center gap-2.5 text-xs">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <div>
+                            <div class="font-bold text-white text-xs whitespace-nowrap">${h.name}</div>
+                            <div class="text-[11px] text-slate-300 whitespace-nowrap">${h.badge}</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-amber-400"></i>
+                    </div>
+                    <div class="pulse-beacon bg-amber-400"></div>
+                `;
+
+                el.onclick = () => focusHotspot(h);
+                container.appendChild(el);
+            });
+        }
+
+        function updateHotspotPositions() {
+            const tempV = new THREE.Vector3();
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            hotspotsData.forEach(spot => {
+                const el = document.getElementById(spot.id);
+                if (!el) return;
+
+                tempV.copy(spot.pos);
+                tempV.project(camera);
+
+                if (tempV.z > 1) {
+                    el.style.opacity = '0';
+                    el.style.pointerEvents = 'none';
+                    return;
+                }
+
+                const x = (tempV.x * 0.5 + 0.5) * w;
+                const y = (-tempV.y * 0.5 + 0.5) * h;
+
+                el.style.opacity = '1';
+                el.style.pointerEvents = 'auto';
+                el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+            });
+        }
+
+        function flyTo(camPos, lookTarget) {
+            camTargetPos.copy(camPos);
+            camLookAtTarget.copy(lookTarget);
+            camMoving = true;
+        }
+
+        function focusHotspot(h) {
+            flyTo(h.camPos, h.camTarget);
+            playChickChirp();
+            showToast(`${h.name}: ${h.desc}`);
+
+            if (h.id === 'spot-pasgar') switchTab('pasgar');
+            if (h.id === 'spot-brooder') switchTab('allocation');
+            if (h.id === 'spot-truck') switchTab('matching');
+            if (h.id === 'spot-iot') switchTab('bep');
+        }
+
+        function flyToPreset(preset) {
+            ['overview', 'brooder', 'pasgar', 'blower'].forEach(p => {
+                const btn = document.getElementById(`btn-cam-${p}`);
+                if (btn) {
+                    if (p === preset) {
+                        btn.className = "px-3.5 py-2 rounded-lg bg-amber-400 text-slate-950 font-extrabold shadow transition";
+                    } else {
+                        btn.className = "px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition";
+                    }
+                }
+            });
+
+            if (preset === 'overview') {
+                flyTo(new THREE.Vector3(0, 8.5, 14.5), new THREE.Vector3(0, 0.8, 0));
+            } else if (preset === 'brooder') {
+                flyTo(new THREE.Vector3(0, 4.2, 5.0), new THREE.Vector3(0, 0.6, 0));
+                switchTab('allocation');
+            } else if (preset === 'pasgar') {
+                flyTo(new THREE.Vector3(-2.0, 2.2, 6.2), new THREE.Vector3(-3.2, 0.9, 4.0));
+                switchTab('pasgar');
+            } else if (preset === 'blower') {
+                flyTo(new THREE.Vector3(0, 3.5, -2.5), new THREE.Vector3(0, 1.8, -6.8));
+            }
+        }
+
+        function activateWorkflowStep(stepNum) {
+            for (let i = 1; i <= 6; i++) {
+                const btn = document.getElementById(`step-btn-${i}`);
+                if (i === stepNum) {
+                    btn.className = "workflow-btn px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-1.5 shadow glow-amber";
+                } else {
+                    btn.className = "workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5";
+                }
+            }
+
+            const spotMap = [
+                hotspotsData[0],
+                hotspotsData[1],
+                hotspotsData[2],
+                hotspotsData[3],
+                hotspotsData[4],
+                hotspotsData[5]
+            ];
+            focusHotspot(spotMap[stepNum - 1]);
+        }
+
+        function toggleDayNight() {
+            isNight = !isNight;
+            const icon = document.getElementById('daynight-icon');
+            if (isNight) {
+                icon.className = 'fa-solid fa-moon text-cyan-300';
+                scene.background.setHex(0x020617);
+                scene.fog.color.setHex(0x020617);
+                dirLight.intensity = 0.25;
+                hemiLight.intensity = 0.3;
+                heatLight.intensity = 4.5;
+                showToast('Mode Malam: Pemanas brooder berpendar maksimal');
+            } else {
+                icon.className = 'fa-solid fa-sun text-amber-400';
+                scene.background.setHex(0x060f1e);
+                scene.fog.color.setHex(0x060f1e);
+                dirLight.intensity = 1.35;
+                hemiLight.intensity = 0.8;
+                heatLight.intensity = 3.0;
+                showToast('Mode Siang: Cahaya natural');
+            }
+        }
+
+        function toggleSound() {
+            soundActive = !soundActive;
+            const icon = document.getElementById('audio-icon');
+            if (soundActive) {
+                icon.className = 'fa-solid fa-volume-high text-cyan-400';
+                playChickChirp();
+                showToast('Audio Suara DOC: Aktif');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                showToast('Audio Suara DOC: Mute');
+            }
+        }
+
+        function onWindowResize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        let clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            exhaustFans.forEach(f => {
+                f.rotation.z += delta * 14.0;
+            });
+
+            docChicks.forEach(c => {
+                c.userData.peckTimer -= delta;
+                if (c.userData.peckTimer <= 0) {
+                    c.userData.peckTimer = 1.2 + Math.random() * 2.0;
+                    c.userData.targetRot = Math.random() * Math.PI * 2;
+                }
+                c.rotation.y += (c.userData.targetRot - c.rotation.y) * 0.05;
+                c.position.y = 0.05 + Math.abs(Math.sin(elapsed * 5 + c.userData.speed)) * 0.03;
+            });
+
+            if (heatParticles) {
+                const pos = heatParticles.geometry.attributes.position.array;
+                for (let i = 0; i < pos.length; i += 3) {
+                    pos[i + 1] += delta * 0.6;
+                    if (pos[i + 1] > 2.6) pos[i + 1] = 0.4;
+                }
+                heatParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            if (airFlowParticles) {
+                const pos = airFlowParticles.geometry.attributes.position.array;
+                for (let i = 0; i < pos.length; i += 3) {
+                    pos[i + 2] -= delta * 3.5;
+                    if (pos[i + 2] < -6.5) pos[i + 2] = 5.0;
+                }
+                airFlowParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            if (heatLight) {
+                heatLight.intensity = (isNight ? 4.2 : 3.0) + Math.sin(elapsed * 4) * 0.35;
+            }
+
+            if (iotSensorLed) {
+                const blink = Math.sin(elapsed * 8) > 0;
+                iotSensorLed.material.color.setHex(blink ? 0x10b981 : 0x064e3b);
+            }
+
+            if (camMoving) {
+                camera.position.lerp(camTargetPos, 0.07);
+                controls.target.lerp(camLookAtTarget, 0.07);
+                if (camera.position.distanceTo(camTargetPos) < 0.08) {
+                    camMoving = false;
+                }
+            }
+
+            controls.update();
+            updateHotspotPositions();
+            renderer.render(scene, camera);
+        }
+
+        // --- DOCI INTELLIGENCE FUNCTIONS ---
+
+        function switchTab(tabId) {
+            const tabs = ['allocation', 'pasgar', 'matching', 'bep'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (t === tabId) {
+                    btn.className = "px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-2 whitespace-nowrap shadow";
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = "px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap";
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // Clean, High-Contrast Farmer Allocation Cards (100% Readable)
+        function renderAllocationTable() {
+            const container = document.getElementById('allocation-list');
+            container.innerHTML = '';
+
+            farmersData.forEach(f => {
+                const item = document.createElement('div');
+                item.className = 'glass-card p-3.5 rounded-xl border border-slate-700 hover:border-amber-400/60 transition shadow-sm';
+                item.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-white text-sm">${f.name}</span>
+                            <span class="bg-amber-400 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-md shadow-sm">Skor ${f.priority}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-300 font-medium">Alokasi Diterima:</span>
+                            <div class="text-base font-extrabold text-emerald-400 font-sans tracking-wide">${f.allocated.toLocaleString('id-ID')} DOC</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1 text-xs text-slate-300 pt-2 border-t border-slate-700/70">
+                        <div>Kapasitas: <strong class="text-white">${f.capacity.toLocaleString('id-ID')}</strong></div>
+                        <div>Kesiapan: <strong class="text-emerald-400">${f.readiness}%</strong></div>
+                        <div>Riwayat: <strong class="text-cyan-300">${f.history}%</strong></div>
+                        <div class="text-right">Ajuan: <strong class="text-slate-200">${f.request.toLocaleString('id-ID')}</strong></div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function updateQuotaSimulation(newQuota) {
+            const totalAvail = parseInt(newQuota);
+            document.getElementById('slider-quota-label').innerText = totalAvail.toLocaleString('id-ID') + ' DOC';
+            document.getElementById('macro-quota-avail').innerText = totalAvail.toLocaleString('id-ID');
+
+            const totalScore = farmersData.reduce((acc, cur) => acc + (cur.priority * cur.request), 0);
+            farmersData.forEach(f => {
+                const share = (f.priority * f.request) / totalScore;
+                f.allocated = Math.round((totalAvail * share) / 100) * 100;
+                if (f.allocated > f.request) f.allocated = f.request;
+            });
+
+            renderAllocationTable();
+        }
+
+        function calcPasgar() {
+            const p1 = parseFloat(document.getElementById('pasgar-refleks').value);
+            const p2 = parseFloat(document.getElementById('pasgar-pusar').value);
+            const p3 = parseFloat(document.getElementById('pasgar-kaki').value);
+            const p4 = parseFloat(document.getElementById('pasgar-paruh').value);
+            const p5 = parseFloat(document.getElementById('pasgar-perut').value);
+
+            const total = (p1 + p2 + p3 + p4 + p5).toFixed(1);
+            document.getElementById('total-pasgar-val').innerText = `${total} / 10`;
+
+            const pill = document.getElementById('pasgar-grade-pill');
+            const verdict = document.getElementById('pasgar-verdict');
+
+            if (total >= 9.0) {
+                pill.className = "text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-extrabold";
+                pill.innerText = "Grade A Prima";
+                verdict.innerText = "Kualitas Bibit Sangat Bagus & Seragam";
+                verdict.className = "text-xs text-emerald-300 font-bold";
+            } else if (total >= 7.5) {
+                pill.className = "text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 font-extrabold";
+                pill.innerText = "Grade B Standar";
+                verdict.innerText = "Kualitas Cukup, Perlu Ekstra Vitamin";
+                verdict.className = "text-xs text-amber-300 font-bold";
+            } else {
+                pill.className = "text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-400/50 font-extrabold";
+                pill.innerText = "Grade C Rawan";
+                verdict.innerText = "Resiko Mortalitas Tinggi! Pertimbangkan Klaim";
+                verdict.className = "text-xs text-red-300 font-bold";
+            }
+        }
+
+        function calcBEP() {
+            const docPrice = parseFloat(document.getElementById('calc-doc-price').value) || 6850;
+            const feedPrice = parseFloat(document.getElementById('calc-feed-price').value) || 8900;
+            const fcr = parseFloat(document.getElementById('calc-fcr').value) || 1.55;
+            const livebirdPrice = parseFloat(document.getElementById('calc-livebird-price').value) || 21500;
+
+            const targetWeightKg = 1.9;
+            const totalFeedCost = targetWeightKg * fcr * feedPrice;
+            const operationalAndOVK = 2800;
+            
+            const totalCostPerBird = docPrice + totalFeedCost + operationalAndOVK;
+            const bepPerKg = Math.round(totalCostPerBird / targetWeightKg);
+            const marginPerKg = Math.round(livebirdPrice - bepPerKg);
+
+            document.getElementById('calc-bep-val').innerText = `Rp ${bepPerKg.toLocaleString('id-ID')} / kg`;
+
+            const marginEl = document.getElementById('calc-margin-val');
+            const banner = document.getElementById('bep-decision-banner');
+
+            if (marginPerKg >= 1500) {
+                marginEl.innerText = `+Rp ${marginPerKg.toLocaleString('id-ID')} / kg (Untung Optimal)`;
+                marginEl.className = "font-extrabold text-emerald-400 text-sm font-sans";
+                banner.className = "bg-emerald-500/20 border border-emerald-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow";
+                banner.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-xl">
+                        <i class="fa-solid fa-thumbs-up"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-extrabold text-emerald-300 uppercase tracking-wide">REKOMENDASI: CHICK-IN SEKARANG</div>
+                        <div class="text-xs text-slate-200 mt-0.5">Margin laba diproyeksikan aman (+Rp ${marginPerKg.toLocaleString('id-ID')} / kg).</div>
+                    </div>
+                `;
+            } else if (marginPerKg >= 0) {
+                marginEl.innerText = `+Rp ${marginPerKg.toLocaleString('id-ID')} / kg (Margin Tipis)`;
+                marginEl.className = "font-extrabold text-amber-400 text-sm font-sans";
+                banner.className = "bg-amber-500/20 border border-amber-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow";
+                banner.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-extrabold text-amber-300 uppercase tracking-wide">REKOMENDASI: PERHATIKAN EFISIENSI FCR</div>
+                        <div class="text-xs text-slate-200 mt-0.5">Harga jual mendekati titik impas. Jaga FCR ketat &lt; 1.5.</div>
+                    </div>
+                `;
+            } else {
+                marginEl.innerText = `-Rp ${Math.abs(marginPerKg).toLocaleString('id-ID')} / kg (Potensi Rugi)`;
+                marginEl.className = "font-extrabold text-red-400 text-sm font-sans";
+                banner.className = "bg-red-500/20 border border-red-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow";
+                banner.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-red-400 text-slate-950 flex items-center justify-center font-black text-xl">
+                        <i class="fa-solid fa-hand"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-extrabold text-red-300 uppercase tracking-wide">REKOMENDASI: TUNDA SIKLUS CHICK-IN</div>
+                        <div class="text-xs text-slate-200 mt-0.5">Harga livebird pasar di bawah biaya produksi pokok!</div>
+                    </div>
+                `;
+            }
+        }
+
+        function selectHatchery(name) {
+            showToast(`Hatchery Terpilih: ${name}. Sistem memperbarui estimasi tiba DOC.`);
+        }
+
+        function approveAllocation() {
+            showToast('Alokasi Kuota Sukses Diterbitkan! Notifikasi terkirim ke WhatsApp 5 Peternak.');
+        }
+
+        function savePasgarAudit() {
+            showToast('Hasil Pasgar Score 9.5 Berhasil Disimpan ke Audit Trail Hatchery!');
+        }
+
+        function showExplainabilityModal() {
+            document.getElementById('modal-explain').classList.remove('hidden');
+        }
+        function closeExplainModal() {
+            document.getElementById('modal-explain').classList.add('hidden');
+        }
+
+        function openInfoModal() {
+            document.getElementById('modal-info').classList.remove('hidden');
+        }
+        function closeInfoModal() {
+            document.getElementById('modal-info').classList.add('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2.5 rounded-2xl border border-amber-400/80 shadow-2xl text-xs font-bold text-amber-300 flex items-center gap-2 animate-bounce';
+            toast.innerHTML = `<i class="fa-solid fa-bell text-amber-400"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3500);
+        }
+
+        window.addEventListener('load', () => {
+            init3D();
+            animate();
+        });
+    </script>
+</body>
+</html>

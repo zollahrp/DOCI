@@ -1,0 +1,17 @@
+{
+  "name": "DOCI - 3D Digital Twin & DOC Intelligence Assistant",
+  "short_name": "DOCI",
+  "description": "Sistem Pendukung Keputusan Alokasi DOC, Pasgar Score & 3D Digital Twin Kandang Broiler Modern",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#060f1e",
+  "theme_color": "#0b1d38",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+
