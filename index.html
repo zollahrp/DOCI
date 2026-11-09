@@ -2,7 +2,7 @@
 <html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>DOCI - 3D Digital Twin & DOC Intelligence Assistant</title>
     <meta name="description" content="DOCI: Prototipe 3D Digital Twin Kandang Broiler Terbuka & Sistem Pendukung Keputusan Alokasi DOC, Pasgar Score, Kesiapan Kandang & Kalkulator BEP.">
     <meta name="theme-color" content="#060f1e">
@@ -13,10 +13,10 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Plus Jakarta Sans for 100% clean, crisp, modern typography -->
+    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -65,6 +65,11 @@
             color: #ffffff;
             font-family: 'Plus Jakarta Sans', sans-serif;
             -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
+        }
+
+        @supports (height: 100dvh) {
+            body, html { height: 100dvh; }
         }
 
         #canvas-container {
@@ -80,24 +85,23 @@
             touch-action: none;
         }
 
-        /* High-Contrast, Clean Dashboard Panels */
+        /* Glassmorphism Panels */
         .glass-panel {
-            background: rgba(13, 23, 42, 0.94);
+            background: rgba(11, 22, 42, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(56, 189, 248, 0.32);
+            box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.18);
         }
 
         .glass-card {
-            background: rgba(22, 36, 65, 0.92);
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            transition: all 0.2s ease-in-out;
+            background: rgba(19, 34, 62, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            transition: all 0.2s ease;
         }
 
         .glass-card:hover {
             border-color: rgba(245, 158, 11, 0.7);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         /* 3D Floating Hotspot Labels */
@@ -122,8 +126,8 @@
             left: 50%;
             bottom: -6px;
             transform: translateX(-50%);
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border-radius: 9999px;
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
@@ -136,22 +140,27 @@
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(6, 15, 30, 0.7);
+            background: rgba(6, 15, 30, 0.6);
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(56, 189, 248, 0.45);
-            border-radius: 5px;
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(245, 158, 11, 0.8);
         }
 
         .glow-amber {
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.55);
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.55);
+        }
+
+        /* Mobile Bottom Sheet Animation */
+        .mobile-sheet {
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
         }
     </style>
 </head>
@@ -164,29 +173,29 @@
     <div id="hotspots-overlay" class="fixed inset-0 pointer-events-none z-20 overflow-hidden"></div>
 
     <!-- UI Overlay Layer -->
-    <div class="fixed inset-0 pointer-events-none z-30 flex flex-col justify-between p-3 md:p-5">
+    <div class="fixed inset-0 pointer-events-none z-30 flex flex-col justify-between p-2.5 sm:p-4 md:p-5">
 
         <!-- Top Header Navigation -->
         <header class="w-full flex items-center justify-between pointer-events-auto">
             <!-- Brand & Tagline -->
-            <div class="flex items-center gap-3">
-                <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3.5 shadow-xl">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg glow-amber">
-                        <i class="fa-solid fa-feather-pointed text-2xl text-slate-950"></i>
-                    </div>
+            <div class="flex items-center gap-2.5 sm:gap-3">
+                <div class="glass-panel px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex items-center gap-2.5 sm:gap-3 shadow-xl">
+                    <img src="logo-doci.jpg" alt="DOCI Logo" class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl object-cover shadow-md border border-amber-400/60 glow-amber flex-shrink-0">
                     <div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-extrabold text-2xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200">DOCI</span>
-                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold shadow-sm">DOC Intelligence Assistant</span>
+                        <div class="flex items-center gap-1.5 sm:gap-2">
+                            <span class="font-extrabold text-lg sm:text-2xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200">DOCI</span>
+                            <span class="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black shadow-sm">DOC Intelligence Assistant</span>
                         </div>
-                        <p class="text-xs text-slate-200 font-medium">Transparan. Cerdas. Berkelanjutan. • <span class="text-amber-300 font-semibold">3D Digital Twin</span></p>
+                        <p class="text-[10px] sm:text-xs text-slate-200 font-medium truncate max-w-[170px] sm:max-w-none">
+                            Transparan. Cerdas. • <span class="text-amber-300 font-bold">3D Digital Twin</span>
+                        </p>
                     </div>
                 </div>
 
                 <!-- Status Banner (Desktop) -->
                 <div class="hidden xl:flex items-center gap-2">
                     <div class="glass-panel px-3.5 py-2.5 rounded-xl flex items-center gap-2.5 text-xs">
-                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span class="text-slate-300">Status Alokasi:</span>
                         <span class="text-emerald-400 font-extrabold text-sm">30.000 / 50.000 DOC (60%)</span>
                     </div>
@@ -194,45 +203,47 @@
             </div>
 
             <!-- Top Right Action Controls -->
-            <div class="flex items-center gap-2.5">
-                <!-- Camera Preset Switcher -->
-                <div class="glass-panel p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
-                    <button id="btn-cam-overview" onclick="flyToPreset('overview')" class="px-3.5 py-2 rounded-lg bg-amber-400 text-slate-950 font-extrabold shadow transition">
-                        <i class="fa-solid fa-globe mr-1.5"></i> Overview
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Camera Preset Switcher (Desktop / Tablet) -->
+                <div class="hidden md:flex glass-panel p-1 rounded-xl items-center gap-1 text-xs font-bold">
+                    <button id="btn-cam-overview" onclick="flyToPreset('overview')" class="px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-extrabold shadow transition">
+                        <i class="fa-solid fa-globe mr-1"></i> Overview
                     </button>
-                    <button id="btn-cam-brooder" onclick="flyToPreset('brooder')" class="px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
-                        <i class="fa-solid fa-temperature-arrow-up mr-1 text-amber-400"></i> Pemanas & DOC
+                    <button id="btn-cam-brooder" onclick="flyToPreset('brooder')" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-temperature-arrow-up mr-1 text-amber-400"></i> Brooder
                     </button>
-                    <button id="btn-cam-pasgar" onclick="flyToPreset('pasgar')" class="px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
-                        <i class="fa-solid fa-clipboard-check mr-1 text-emerald-400"></i> Uji Pasgar
+                    <button id="btn-cam-pasgar" onclick="flyToPreset('pasgar')" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-clipboard-check mr-1 text-emerald-400"></i> Pasgar
                     </button>
-                    <button id="btn-cam-blower" onclick="flyToPreset('blower')" class="px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
-                        <i class="fa-solid fa-fan mr-1 text-cyan-400"></i> Blower Fan
+                    <button id="btn-cam-blower" onclick="flyToPreset('blower')" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-fan mr-1 text-cyan-400"></i> Blower
                     </button>
                 </div>
 
                 <!-- Simulation Toggle Controls -->
-                <button onclick="toggleDayNight()" title="Ganti Waktu Siang/Malam" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-300 transition text-base">
+                <button onclick="toggleDayNight()" title="Ganti Waktu Siang/Malam" class="glass-panel w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-300 transition text-sm sm:text-base">
                     <i id="daynight-icon" class="fa-solid fa-sun"></i>
                 </button>
                 
-                <button onclick="toggleSound()" title="Audio Suara DOC" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-cyan-400 hover:text-cyan-300 transition text-base">
+                <button onclick="toggleSound()" title="Audio Suara DOC" class="glass-panel w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-cyan-400 hover:text-cyan-300 transition text-sm sm:text-base">
                     <i id="audio-icon" class="fa-solid fa-volume-high"></i>
                 </button>
 
-                <button onclick="openInfoModal()" title="Tentang DOCI" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-200 hover:text-white transition text-base">
+                <a href="logo-preview.html" target="_blank" title="Lihat Logo Resmi DOCI" class="hidden sm:flex glass-panel px-3 py-2 rounded-xl items-center gap-1.5 text-xs text-amber-300 hover:text-white hover:border-amber-400/50 transition font-bold">
+                    <i class="fa-solid fa-palette text-amber-400"></i> Logo
+                </a>
+
+                <button onclick="openInfoModal()" title="Tentang DOCI" class="glass-panel w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-200 hover:text-white transition text-sm sm:text-base">
                     <i class="fa-solid fa-circle-question"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Main Middle Area: Left Telemetry & Right Intelligence Decision Panes -->
-        <div class="w-full flex-1 flex justify-between items-start pointer-events-none mt-3 mb-3 overflow-hidden">
+        <!-- Main Middle Area: Desktop Panes (Hidden on Mobile, Displayed on lg+) -->
+        <div class="hidden lg:flex w-full flex-1 justify-between items-start pointer-events-none mt-3 mb-3 overflow-hidden">
             
-            <!-- Left Side Panel: Kandang IoT Telemetry & Kesiapan -->
-            <div id="left-telemetry-panel" class="pointer-events-auto w-80 max-h-full flex flex-col gap-3 overflow-y-auto pr-1 transition-all duration-300">
-                
-                <!-- Status Card -->
+            <!-- Left Side Panel: Kandang IoT Telemetry -->
+            <div id="desktop-telemetry-panel" class="pointer-events-auto w-80 max-h-full flex flex-col gap-3 overflow-y-auto pr-1">
                 <div class="glass-panel p-4 rounded-2xl shadow-xl">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -242,23 +253,21 @@
                     </div>
                     
                     <h3 class="text-base font-bold text-white leading-tight">Kandang Broiler Mandiri Sejahtera</h3>
-                    <p class="text-xs text-slate-300 mt-1">Kapasitas Maksimal: <strong class="text-amber-300 text-sm">15.000 Ekor</strong></p>
+                    <p class="text-xs text-slate-300 mt-1">Kapasitas: <strong class="text-amber-300 text-sm">15.000 Ekor</strong></p>
 
-                    <!-- Kandang Readiness Score Bar -->
                     <div class="mt-3.5 p-3 rounded-xl bg-slate-900/90 border border-slate-700/80">
                         <div class="flex items-center justify-between text-xs mb-1.5">
                             <span class="text-slate-200 font-semibold flex items-center gap-1.5">
-                                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Kandang Readiness Score
+                                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Readiness Score
                             </span>
                             <span class="font-extrabold text-emerald-400 text-sm">94/100 (SIAP)</span>
                         </div>
                         <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
                             <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-2.5 rounded-full" style="width: 94%"></div>
                         </div>
-                        <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">Pemanas stabil, alas sekam kering tebal, & biosekuriti steril.</p>
+                        <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">Pemanas stabil, sekam kering tebal, biosekuriti steril.</p>
                     </div>
 
-                    <!-- Live IoT Telemetry Gauges -->
                     <div class="grid grid-cols-2 gap-2.5 mt-3">
                         <div class="glass-card p-3 rounded-xl">
                             <div class="flex items-center justify-between text-xs text-slate-300">
@@ -266,53 +275,52 @@
                                 <i class="fa-solid fa-temperature-high text-amber-400"></i>
                             </div>
                             <div class="text-xl font-extrabold text-amber-300 mt-1 font-sans">
-                                <span id="tele-temp">33.2</span>°C
+                                33.2°C
                             </div>
                             <span class="text-[11px] text-emerald-400 font-bold">Ideal (32 - 34°C)</span>
                         </div>
 
                         <div class="glass-card p-3 rounded-xl">
                             <div class="flex items-center justify-between text-xs text-slate-300">
-                                <span>Kelembaban RH</span>
+                                <span>Kelembaban</span>
                                 <i class="fa-solid fa-droplet text-cyan-400"></i>
                             </div>
                             <div class="text-xl font-extrabold text-cyan-300 mt-1 font-sans">
-                                <span id="tele-humidity">62</span>%
+                                62%
                             </div>
                             <span class="text-[11px] text-emerald-400 font-bold">Optimal (55 - 65%)</span>
                         </div>
 
                         <div class="glass-card p-3 rounded-xl">
                             <div class="flex items-center justify-between text-xs text-slate-300">
-                                <span>Kadar Amonia</span>
+                                <span>Amonia</span>
                                 <i class="fa-solid fa-wind text-indigo-400"></i>
                             </div>
                             <div class="text-xl font-extrabold text-white mt-1 font-sans">
-                                <span id="tele-ammonia">7.5</span> ppm
+                                7.5 ppm
                             </div>
                             <span class="text-[11px] text-emerald-400 font-bold">Aman (&lt;10 ppm)</span>
                         </div>
 
                         <div class="glass-card p-3 rounded-xl">
                             <div class="flex items-center justify-between text-xs text-slate-300">
-                                <span>Exhaust Fan</span>
+                                <span>Blower</span>
                                 <i class="fa-solid fa-fan text-blue-400"></i>
                             </div>
                             <div class="text-xl font-extrabold text-blue-300 mt-1 font-sans">
                                 4 Unit
                             </div>
-                            <span class="text-[11px] text-emerald-400 font-bold">Sirkulasi Aktif</span>
+                            <span class="text-[11px] text-emerald-400 font-bold">Aktif Sirkulasi</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Simulation Quick Trigger -->
                 <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between shadow-xl">
                     <div>
                         <p class="text-sm font-bold text-white flex items-center gap-1.5">
                             <i class="fa-solid fa-egg text-amber-400"></i> Tambah DOC (Chick-In)
                         </p>
-                        <p class="text-xs text-slate-300">Lepaskan anak ayam 3D ke kandang</p>
+                        <p class="text-xs text-slate-300">Lepaskan anak ayam 3D</p>
                     </div>
                     <button onclick="spawnMoreChicks()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs hover:brightness-110 active:scale-95 transition flex items-center gap-2 shadow-lg glow-amber">
                         <i class="fa-solid fa-plus text-sm"></i> + Chick-In
@@ -320,327 +328,18 @@
                 </div>
             </div>
 
-            <!-- Right Side Panel: Clean, High-Contrast, Readable Decision Support Dashboard -->
-            <div id="right-dashboard-panel" class="pointer-events-auto w-full max-w-[480px] max-h-full flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl transition-all duration-300">
-                
-                <!-- Tab Header Nav (Readable, Clear, High Contrast) -->
-                <div class="flex items-center border-b border-slate-700/80 bg-slate-900/90 p-2 gap-1.5 overflow-x-auto text-xs font-bold">
-                    <button onclick="switchTab('allocation')" id="tab-btn-allocation" class="px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-2 whitespace-nowrap shadow">
-                        <i class="fa-solid fa-scale-balanced text-sm"></i> Smart Allocation
-                    </button>
-                    <button onclick="switchTab('pasgar')" id="tab-btn-pasgar" class="px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-vial-circle-check text-sm text-emerald-400"></i> Pasgar Score
-                    </button>
-                    <button onclick="switchTab('matching')" id="tab-btn-matching" class="px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-building-circle-check text-sm text-cyan-400"></i> Hatchery
-                    </button>
-                    <button onclick="switchTab('bep')" id="tab-btn-bep" class="px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-calculator text-sm text-amber-400"></i> Kalkulator BEP
-                    </button>
-                </div>
-
-                <!-- Tab Content Bodies -->
-                <div class="p-4 md:p-5 flex-1 overflow-y-auto space-y-4">
-                    
-                    <!-- TAB 1: SMART ALLOCATION RECOMMENDATION (KILLER FEATURE A) -->
-                    <div id="tab-content-allocation" class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
-                                    <i class="fa-solid fa-brain text-amber-400"></i> Smart Quota Allocation
-                                </h4>
-                                <p class="text-xs text-slate-300 mt-0.5">Rekomendasi kuota DOC adil, objektif & berbasis data</p>
-                            </div>
-                            <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 font-bold">AI Explainable</span>
-                        </div>
-
-                        <!-- Macro Quota Stats (Clean & Clear) -->
-                        <div class="grid grid-cols-3 gap-2.5 text-center">
-                            <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700/80">
-                                <div class="text-xs text-slate-400 font-medium">Total Permintaan</div>
-                                <div class="text-lg font-extrabold text-white mt-1 font-sans">50.000</div>
-                                <div class="text-xs text-slate-400">DOC Ekor</div>
-                            </div>
-                            <div class="bg-slate-900/90 p-3 rounded-xl border border-amber-400/40">
-                                <div class="text-xs text-amber-300 font-semibold">Kuota Tersedia</div>
-                                <div class="text-lg font-extrabold text-amber-400 mt-1 font-sans" id="macro-quota-avail">30.000</div>
-                                <div class="text-xs text-amber-300 font-bold">60% Terpenuhi</div>
-                            </div>
-                            <div class="bg-slate-900/90 p-3 rounded-xl border border-emerald-400/40">
-                                <div class="text-xs text-emerald-300 font-semibold">Realisasi Lalu</div>
-                                <div class="text-lg font-extrabold text-emerald-400 mt-1 font-sans">95%</div>
-                                <div class="text-xs text-emerald-300 font-bold">Tepat Waktu</div>
-                            </div>
-                        </div>
-
-                        <!-- Interactive Quota Adjustment Slider -->
-                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 space-y-2.5">
-                            <div class="flex justify-between items-center text-xs">
-                                <label class="text-slate-200 font-semibold">Simulasi Kuota Pasokan Hatchery:</label>
-                                <span class="font-extrabold text-amber-400 text-sm font-sans" id="slider-quota-label">30.000 DOC</span>
-                            </div>
-                            <input type="range" id="input-quota-range" min="15000" max="50000" step="5000" value="30000" oninput="updateQuotaSimulation(this.value)" class="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg">
-                            <div class="flex justify-between text-xs text-slate-400 font-medium">
-                                <span>15.000 (Pasokan Ketat)</span>
-                                <span>30.000 (Normal)</span>
-                                <span>50.000 (Penuh)</span>
-                            </div>
-                        </div>
-
-                        <!-- Farmer Allocation Table with High-Contrast Layout -->
-                        <div class="space-y-2.5">
-                            <div class="text-xs font-bold text-slate-200 flex items-center justify-between">
-                                <span>Daftar Alokasi Anggota Koperasi:</span>
-                                <button type="button" class="text-cyan-400 text-xs font-semibold hover:underline flex items-center gap-1 cursor-pointer" onclick="showExplainabilityModal()">
-                                    <i class="fa-solid fa-circle-info"></i> Dasar Rumus AI
-                                </button>
-                            </div>
-
-                            <!-- List of Farmers (Populated by JavaScript) -->
-                            <div id="allocation-list" class="space-y-2.5">
-                                <!-- Rendered dynamically -->
-                            </div>
-                        </div>
-
-                        <!-- Action Button -->
-                        <button onclick="approveAllocation()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-extrabold text-sm hover:brightness-110 active:scale-98 transition flex items-center justify-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-check-double text-base"></i> Kunci & Terbitkan Hasil Alokasi
-                        </button>
-                    </div>
-
-                    <!-- TAB 2: DOC QUALITY INTELLIGENCE (PASGAR SCORE) -->
-                    <div id="tab-content-pasgar" class="hidden space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
-                                    <i class="fa-solid fa-star-half-stroke text-amber-400"></i> Pasgar Score Intelligence
-                                </h4>
-                                <p class="text-xs text-slate-300 mt-0.5">Pemeriksaan kualitas fisik DOC saat tiba di kandang</p>
-                            </div>
-                            <span id="pasgar-grade-pill" class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-extrabold">Grade A Prima</span>
-                        </div>
-
-                        <!-- Total Score Display -->
-                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-lg">
-                            <div>
-                                <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Pasgar Score</span>
-                                <div class="text-3xl font-extrabold text-emerald-400 font-sans mt-0.5" id="total-pasgar-val">9.5 / 10</div>
-                                <span class="text-xs text-emerald-300 font-bold" id="pasgar-verdict">Kualitas Bibit Sangat Bagus & Seragam</span>
-                            </div>
-                            <div class="w-14 h-14 rounded-full border-4 border-emerald-400 flex items-center justify-center bg-slate-950 text-emerald-400 text-2xl shadow">
-                                <i class="fa-solid fa-award"></i>
-                            </div>
-                        </div>
-
-                        <!-- Pasgar 5 Criteria Checklist -->
-                        <div class="space-y-2.5 text-xs">
-                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-white text-sm">1. Refleks Balik (Keaktifan)</span>
-                                    <p class="text-xs text-slate-400 mt-0.5">Mampu bangun & berdiri dalam &lt; 2 detik</p>
-                                </div>
-                                <select id="pasgar-refleks" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
-                                    <option value="2.0">Cepat &lt;2s (+2.0)</option>
-                                    <option value="1.0">Lambat 2-4s (+1.0)</option>
-                                    <option value="0.0">Lesu &gt;4s (0.0)</option>
-                                </select>
-                            </div>
-
-                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-white text-sm">2. Kondisi Pusar (Navel)</span>
-                                    <p class="text-xs text-slate-400 mt-0.5">Tertutup bersih tanpa kerak hitam</p>
-                                </div>
-                                <select id="pasgar-pusar" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
-                                    <option value="2.0">Tertutup Bersih (+2.0)</option>
-                                    <option value="1.0">Kerak Kecil (+1.0)</option>
-                                    <option value="0.0">Terbuka/Basah (0.0)</option>
-                                </select>
-                            </div>
-
-                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-white text-sm">3. Kaki & Sendi (Hocks)</span>
-                                    <p class="text-xs text-slate-400 mt-0.5">Lembab, segar, tidak merah/memar</p>
-                                </div>
-                                <select id="pasgar-kaki" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
-                                    <option value="2.0">Segar & Halus (+2.0)</option>
-                                    <option value="1.0">Sedikit Kering (+1.0)</option>
-                                    <option value="0.0">Memar Merah (0.0)</option>
-                                </select>
-                            </div>
-
-                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-white text-sm">4. Paruh & Mata</span>
-                                    <p class="text-xs text-slate-400 mt-0.5">Mata bulat cerah, paruh bersih</p>
-                                </div>
-                                <select id="pasgar-paruh" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
-                                    <option value="2.0">Cerah Sempurna (+2.0)</option>
-                                    <option value="1.0">Sedikit Kerak (+1.0)</option>
-                                    <option value="0.0">Sayu/Lendir (0.0)</option>
-                                </select>
-                            </div>
-
-                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between">
-                                <div>
-                                    <span class="font-bold text-white text-sm">5. Perut / Kuning Telur</span>
-                                    <p class="text-xs text-slate-400 mt-0.5">Perut empuk, kuning telur terserap</p>
-                                </div>
-                                <select id="pasgar-perut" onchange="calcPasgar()" class="bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs">
-                                    <option value="1.5">Empuk & Rata (+1.5)</option>
-                                    <option value="0.8">Agak Keras (+0.8)</option>
-                                    <option value="0.0">Bengkak Keras (0.0)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Simpan Bukti Pemeriksaan -->
-                        <button onclick="savePasgarAudit()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs hover:brightness-110 transition flex items-center justify-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-cloud-arrow-up text-sm"></i> Catat Hasil ke Riwayat Hatchery
-                        </button>
-                    </div>
-
-                    <!-- TAB 3: HATCHERY MATCHING (KILLER FEATURE B) -->
-                    <div id="tab-content-matching" class="hidden space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
-                                    <i class="fa-solid fa-magnifying-glass-chart text-cyan-400"></i> Rekomendasi Hatchery
-                                </h4>
-                                <p class="text-xs text-slate-300 mt-0.5">Pencocokan multi-kriteria berbasis rekam jejak</p>
-                            </div>
-                        </div>
-
-                        <!-- Hatchery Cards -->
-                        <div class="space-y-3">
-                            <div class="glass-card p-4 rounded-xl border border-amber-400/60 relative overflow-hidden shadow-lg">
-                                <div class="absolute -right-7 top-3 bg-amber-400 text-slate-950 text-[10px] font-black px-8 py-0.5 rotate-45 uppercase">Best Match</div>
-                                <div>
-                                    <h5 class="font-extrabold text-white text-sm">PT Charoen Pokphand Jaya</h5>
-                                    <p class="text-xs text-slate-300 mt-0.5"><i class="fa-solid fa-location-dot text-amber-400 mr-1.5"></i> Subang (Jarak 42 km • 1.5 Jam)</p>
-                                </div>
-                                <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
-                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
-                                        <span class="text-slate-400">Harga DOC</span>
-                                        <div class="font-bold text-white text-sm mt-0.5">Rp 6.850</div>
-                                    </div>
-                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
-                                        <span class="text-slate-400">Pasgar Histori</span>
-                                        <div class="font-bold text-emerald-400 text-sm mt-0.5">9.6 / 10</div>
-                                    </div>
-                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
-                                        <span class="text-slate-400">Survival Rate</span>
-                                        <div class="font-bold text-cyan-300 text-sm mt-0.5">98.4%</div>
-                                    </div>
-                                </div>
-                                <button onclick="selectHatchery('PT Charoen Pokphand Jaya')" class="w-full mt-3 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow">
-                                    Pilih Sebagai Rekomendasi Alokasi
-                                </button>
-                            </div>
-
-                            <div class="glass-card p-4 rounded-xl border border-slate-700 shadow-md">
-                                <div>
-                                    <h5 class="font-extrabold text-white text-sm">PT Japfa Comfeed Unit Purwakarta</h5>
-                                    <p class="text-xs text-slate-300 mt-0.5"><i class="fa-solid fa-location-dot text-cyan-400 mr-1.5"></i> Purwakarta (Jarak 68 km • 2.2 Jam)</p>
-                                </div>
-                                <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
-                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
-                                        <span class="text-slate-400">Harga DOC</span>
-                                        <div class="font-bold text-white text-sm mt-0.5">Rp 6.700</div>
-                                    </div>
-                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
-                                        <span class="text-slate-400">Pasgar Histori</span>
-                                        <div class="font-bold text-emerald-400 text-sm mt-0.5">9.2 / 10</div>
-                                    </div>
-                                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-700">
-                                        <span class="text-slate-400">Survival Rate</span>
-                                        <div class="font-bold text-cyan-300 text-sm mt-0.5">97.8%</div>
-                                    </div>
-                                </div>
-                                <button onclick="selectHatchery('PT Japfa Comfeed Unit Purwakarta')" class="w-full mt-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition">
-                                    Bandingkan Penawaran
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 4: BEP & CHICK-IN DECISION CALCULATOR -->
-                    <div id="tab-content-bep" class="hidden space-y-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-base font-extrabold text-white flex items-center gap-2">
-                                    <i class="fa-solid fa-calculator text-emerald-400"></i> BEP & Chick-In Decision
-                                </h4>
-                                <p class="text-xs text-slate-300 mt-0.5">Simulasi usaha: Isi sekarang atau tunda?</p>
-                            </div>
-                        </div>
-
-                        <!-- Decision Recommendation Banner -->
-                        <div id="bep-decision-banner" class="bg-emerald-500/20 border border-emerald-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow">
-                            <div class="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-xl">
-                                <i class="fa-solid fa-thumbs-up"></i>
-                            </div>
-                            <div>
-                                <div class="text-xs font-extrabold text-emerald-300 uppercase tracking-wide">REKOMENDASI: CHICK-IN SEKARANG</div>
-                                <div class="text-xs text-slate-200 mt-0.5">Margin laba diproyeksikan aman (+Rp 2.400 / kg)</div>
-                            </div>
-                        </div>
-
-                        <!-- Calculator Inputs -->
-                        <div class="space-y-2.5 text-xs">
-                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-                                <span class="text-slate-200 font-semibold">Harga DOC:</span>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-slate-400">Rp</span>
-                                    <input type="number" id="calc-doc-price" value="6850" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-white font-extrabold text-xs">
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-                                <span class="text-slate-200 font-semibold">Harga Pakan:</span>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-slate-400">Rp/kg</span>
-                                    <input type="number" id="calc-feed-price" value="8900" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-white font-extrabold text-xs">
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-                                <span class="text-slate-200 font-semibold">Target FCR:</span>
-                                <input type="number" step="0.05" id="calc-fcr" value="1.55" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-white font-extrabold text-xs">
-                            </div>
-
-                            <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-                                <span class="text-slate-200 font-semibold">Prediksi Harga Livebird:</span>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-slate-400">Rp/kg</span>
-                                    <input type="number" id="calc-livebird-price" value="21500" oninput="calcBEP()" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-right text-emerald-400 font-extrabold text-xs">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Live Calculated BEP Metrics -->
-                        <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-700 space-y-2 text-xs">
-                            <div class="flex justify-between items-center">
-                                <span class="text-slate-300">Biaya Pokok (HPP / BEP):</span>
-                                <span class="font-extrabold text-white text-sm font-sans" id="calc-bep-val">Rp 19.100 / kg</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-slate-300">Proyeksi Margin Laba:</span>
-                                <span class="font-extrabold text-emerald-400 text-sm font-sans" id="calc-margin-val">+Rp 2.400 / kg (+12.5%)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+            <!-- Right Side Panel: Desktop Dashboard Container -->
+            <div id="desktop-dashboard-container" class="pointer-events-auto w-full max-w-[480px] max-h-full flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl">
+                <!-- Dashboard content injected by JS to sync with mobile -->
+                <div id="dashboard-content-mount" class="flex flex-col h-full overflow-hidden"></div>
             </div>
         </div>
 
-        <!-- Bottom Timeline: Workflow Steps (Gimana Cara Kerjanya) -->
-        <footer class="w-full pointer-events-auto">
+        <!-- Bottom Timeline: Workflow Steps (Desktop) -->
+        <footer class="hidden lg:block w-full pointer-events-auto">
             <div class="glass-panel p-2.5 md:p-3 rounded-2xl flex items-center justify-between overflow-x-auto gap-3 shadow-xl">
-                <div class="flex items-center gap-1.5 md:gap-2 text-xs font-bold whitespace-nowrap">
-                    <span class="text-amber-400 font-extrabold uppercase tracking-wider text-[11px] mr-1 hidden sm:inline">Alur Ekosistem DOCI:</span>
+                <div class="flex items-center gap-2 text-xs font-bold whitespace-nowrap">
+                    <span class="text-amber-400 font-extrabold uppercase tracking-wider text-[11px] mr-1">Alur Ekosistem DOCI:</span>
                     
                     <button onclick="activateWorkflowStep(1)" id="step-btn-1" class="workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
                         <span class="w-4 h-4 rounded-full bg-amber-500/30 text-amber-300 flex items-center justify-center text-[10px] font-black">1</span> Truk Logistik
@@ -672,43 +371,495 @@
                     </button>
                 </div>
 
-                <!-- Live Chick Count In Brooder -->
-                <div class="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-700 text-xs">
-                    <span class="text-slate-300 font-medium">Populasi DOC Aktif:</span>
+                <div class="flex items-center gap-2 pl-3 border-l border-slate-700 text-xs">
+                    <span class="text-slate-300 font-medium">Populasi DOC:</span>
                     <span id="live-doc-count" class="font-extrabold text-amber-400 text-sm">3.500 Ekor</span>
                 </div>
             </div>
         </footer>
 
+        <!-- Mobile Bottom Navigation Bar (< lg) -->
+        <nav class="lg:hidden w-full pointer-events-auto pb-[var(--safe-b)]">
+            <div class="glass-panel p-2 rounded-2xl flex items-center justify-around shadow-2xl border border-sky-400/30">
+                <button onclick="openMobileSheet('sheet-dashboard')" class="flex flex-col items-center gap-1 px-3 py-1.5 text-amber-400 hover:text-amber-300 transition">
+                    <i class="fa-solid fa-chart-line text-lg"></i>
+                    <span class="text-[10px] font-bold">Dashboard</span>
+                </button>
+
+                <button onclick="openMobileSheet('sheet-telemetry')" class="flex flex-col items-center gap-1 px-3 py-1.5 text-slate-300 hover:text-white transition">
+                    <i class="fa-solid fa-temperature-high text-lg text-emerald-400"></i>
+                    <span class="text-[10px] font-bold">Kandang</span>
+                </button>
+
+                <!-- Center Floating Action Button: + Chick-In -->
+                <button onclick="spawnMoreChicks()" class="-mt-6 w-13 h-13 p-3.5 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-300 text-slate-950 font-black shadow-2xl glow-amber flex items-center justify-center active:scale-90 transition">
+                    <i class="fa-solid fa-plus text-xl"></i>
+                </button>
+
+                <button onclick="openMobileSheet('sheet-workflow')" class="flex flex-col items-center gap-1 px-3 py-1.5 text-slate-300 hover:text-white transition">
+                    <i class="fa-solid fa-route text-lg text-cyan-400"></i>
+                    <span class="text-[10px] font-bold">Alur 3D</span>
+                </button>
+
+                <button onclick="openInfoModal()" class="flex flex-col items-center gap-1 px-3 py-1.5 text-slate-300 hover:text-white transition">
+                    <i class="fa-solid fa-circle-info text-lg"></i>
+                    <span class="text-[10px] font-bold">Info</span>
+                </button>
+            </div>
+        </nav>
+
     </div>
+
+    <!-- Mobile Slide-Up Bottom Sheets (Hidden by default, slides up smoothly on mobile) -->
+    
+    <!-- 1. Mobile Sheet: Dashboard & Smart Allocation -->
+    <div id="sheet-dashboard" class="mobile-sheet fixed inset-x-0 bottom-0 z-50 transform translate-y-full lg:hidden max-h-[85vh] bg-slate-950/95 border-t border-sky-400/40 rounded-t-3xl shadow-2xl flex flex-col pointer-events-auto">
+        <!-- Pull Handle -->
+        <div class="w-full flex items-center justify-center pt-3 pb-2 cursor-pointer" onclick="closeMobileSheets()">
+            <div class="w-12 h-1.5 rounded-full bg-slate-600"></div>
+        </div>
+        <div class="flex items-center justify-between px-5 pb-2 border-b border-slate-800">
+            <span class="font-extrabold text-base text-white flex items-center gap-2">
+                <i class="fa-solid fa-brain text-amber-400"></i> Decision Support Dashboard
+            </span>
+            <button onclick="closeMobileSheets()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-lg font-bold">&times;</button>
+        </div>
+        <div id="mobile-dashboard-mount" class="p-4 overflow-y-auto flex-1 space-y-4"></div>
+    </div>
+
+    <!-- 2. Mobile Sheet: Kandang Telemetry -->
+    <div id="sheet-telemetry" class="mobile-sheet fixed inset-x-0 bottom-0 z-50 transform translate-y-full lg:hidden max-h-[80vh] bg-slate-950/95 border-t border-emerald-400/40 rounded-t-3xl shadow-2xl flex flex-col pointer-events-auto">
+        <div class="w-full flex items-center justify-center pt-3 pb-2 cursor-pointer" onclick="closeMobileSheets()">
+            <div class="w-12 h-1.5 rounded-full bg-slate-600"></div>
+        </div>
+        <div class="flex items-center justify-between px-5 pb-2 border-b border-slate-800">
+            <span class="font-extrabold text-base text-white flex items-center gap-2">
+                <i class="fa-solid fa-warehouse text-emerald-400"></i> Sensor Kandang Unit 01
+            </span>
+            <button onclick="closeMobileSheets()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-lg font-bold">&times;</button>
+        </div>
+        <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <div class="p-4 rounded-xl bg-slate-900 border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-300">Skor Kesiapan Kandang:</span>
+                    <span class="font-extrabold text-emerald-400 text-base">94/100 (SIAP)</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r from-emerald-400 to-cyan-400 h-2 rounded-full" style="width: 94%"></div>
+                </div>
+                <p class="text-[11px] text-slate-400">Kandang steril, pemanas siap, dan sekam tebal.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span class="text-slate-400">Suhu Brooder</span>
+                    <div class="text-2xl font-black text-amber-400 mt-1">33.2°C</div>
+                    <span class="text-[10px] text-emerald-400 font-bold">Ideal</span>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span class="text-slate-400">Kelembaban</span>
+                    <div class="text-2xl font-black text-cyan-400 mt-1">62%</div>
+                    <span class="text-[10px] text-emerald-400 font-bold">Optimal</span>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span class="text-slate-400">Gas Amonia</span>
+                    <div class="text-2xl font-black text-white mt-1">7.5 ppm</div>
+                    <span class="text-[10px] text-emerald-400 font-bold">Aman</span>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span class="text-slate-400">Exhaust Fan</span>
+                    <div class="text-2xl font-black text-blue-400 mt-1">4 Unit</div>
+                    <span class="text-[10px] text-emerald-400 font-bold">Sirkulasi</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Mobile Sheet: Workflow Steps -->
+    <div id="sheet-workflow" class="mobile-sheet fixed inset-x-0 bottom-0 z-50 transform translate-y-full lg:hidden max-h-[80vh] bg-slate-950/95 border-t border-cyan-400/40 rounded-t-3xl shadow-2xl flex flex-col pointer-events-auto">
+        <div class="w-full flex items-center justify-center pt-3 pb-2 cursor-pointer" onclick="closeMobileSheets()">
+            <div class="w-12 h-1.5 rounded-full bg-slate-600"></div>
+        </div>
+        <div class="flex items-center justify-between px-5 pb-2 border-b border-slate-800">
+            <span class="font-extrabold text-base text-white flex items-center gap-2">
+                <i class="fa-solid fa-route text-cyan-400"></i> Alur Ekosistem DOCI
+            </span>
+            <button onclick="closeMobileSheets()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-lg font-bold">&times;</button>
+        </div>
+        <div class="p-4 overflow-y-auto space-y-2.5 text-xs">
+            <button onclick="activateWorkflowStep(1); closeMobileSheets();" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left">
+                <span class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">1</span>
+                <div>
+                    <div class="font-bold text-white">Truk Logistik DOC Berpendingin</div>
+                    <div class="text-[11px] text-slate-400">Armada suhu terkontrol 24-26°C dari hatchery</div>
+                </div>
+            </button>
+
+            <button onclick="activateWorkflowStep(2); closeMobileSheets();" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left">
+                <span class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">2</span>
+                <div>
+                    <div class="font-bold text-white">Meja Uji Pasgar Score (QC)</div>
+                    <div class="text-[11px] text-slate-400">Sampling 5 parameter kualitas fisik saat tiba</div>
+                </div>
+            </button>
+
+            <button onclick="activateWorkflowStep(3); closeMobileSheets();" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left">
+                <span class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">3</span>
+                <div>
+                    <div class="font-bold text-white">Brooder Ring & Pemanas Gas</div>
+                    <div class="text-[11px] text-slate-400">Suhu hangat 32-34°C untuk ratusan bibit DOC</div>
+                </div>
+            </button>
+
+            <button onclick="activateWorkflowStep(4); closeMobileSheets();" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left">
+                <span class="w-7 h-7 rounded-full bg-cyan-500 text-slate-950 font-black flex items-center justify-center">4</span>
+                <div>
+                    <div class="font-bold text-white">Jalur Pakan & Nipple Otomatis</div>
+                    <div class="text-[11px] text-slate-400">Pakan crumb & air minum vitamin higienis</div>
+                </div>
+            </button>
+
+            <button onclick="activateWorkflowStep(5); closeMobileSheets();" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left">
+                <span class="w-7 h-7 rounded-full bg-blue-500 text-slate-950 font-black flex items-center justify-center">5</span>
+                <div>
+                    <div class="font-bold text-white">Tunnel Exhaust Fan 50"</div>
+                    <div class="text-[11px] text-slate-400">4 unit blower pengatur sirkulasi & amonia</div>
+                </div>
+            </button>
+
+            <button onclick="activateWorkflowStep(6); closeMobileSheets();" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left">
+                <span class="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center">6</span>
+                <div>
+                    <div class="font-bold text-white">Gateway IoT & AI DOCI</div>
+                    <div class="text-[11px] text-slate-400">Transmisi telemetri cerdas ke dashboard peternak</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Template for Dashboard Content (Reused cleanly in desktop & mobile sheet) -->
+    <template id="tpl-dashboard">
+        <!-- Tab Header Nav -->
+        <div class="flex items-center border-b border-slate-700/80 bg-slate-900/90 p-2 gap-1.5 overflow-x-auto text-xs font-bold flex-shrink-0">
+            <button onclick="switchTab('allocation')" class="tab-btn-allocation px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-2 whitespace-nowrap shadow">
+                <i class="fa-solid fa-scale-balanced text-sm"></i> Smart Allocation
+            </button>
+            <button onclick="switchTab('pasgar')" class="tab-btn-pasgar px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-vial-circle-check text-sm text-emerald-400"></i> Pasgar Score
+            </button>
+            <button onclick="switchTab('matching')" class="tab-btn-matching px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-building-circle-check text-sm text-cyan-400"></i> Hatchery
+            </button>
+            <button onclick="switchTab('bep')" class="tab-btn-bep px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-calculator text-sm text-amber-400"></i> Kalkulator BEP
+            </button>
+        </div>
+
+        <!-- Tab Content Bodies -->
+        <div class="p-3.5 sm:p-5 flex-1 overflow-y-auto space-y-4">
+            
+            <!-- TAB 1: SMART ALLOCATION -->
+            <div class="tab-content-allocation space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-amber-400"></i> Smart Quota Allocation
+                        </h4>
+                        <p class="text-xs text-slate-300 mt-0.5">Rekomendasi kuota DOC adil & berbasis data</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 font-bold">AI Explainable</span>
+                </div>
+
+                <!-- Macro Quota Stats -->
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700/80">
+                        <div class="text-[11px] text-slate-400 font-medium">Kebutuhan</div>
+                        <div class="text-base sm:text-lg font-extrabold text-white mt-1 font-sans">50.000</div>
+                        <div class="text-[10px] text-slate-400">DOC</div>
+                    </div>
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-amber-400/40">
+                        <div class="text-[11px] text-amber-300 font-semibold">Tersedia</div>
+                        <div class="text-base sm:text-lg font-extrabold text-amber-400 mt-1 font-sans macro-quota-avail">30.000</div>
+                        <div class="text-[10px] text-amber-300 font-bold">60% Terpenuhi</div>
+                    </div>
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-emerald-400/40">
+                        <div class="text-[11px] text-emerald-300 font-semibold">Realisasi</div>
+                        <div class="text-base sm:text-lg font-extrabold text-emerald-400 mt-1 font-sans">95%</div>
+                        <div class="text-[10px] text-emerald-300 font-bold">Tepat Waktu</div>
+                    </div>
+                </div>
+
+                <!-- Slider -->
+                <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <label class="text-slate-200 font-semibold">Simulasi Kuota Hatchery:</label>
+                        <span class="font-extrabold text-amber-400 text-sm font-sans slider-quota-label">30.000 DOC</span>
+                    </div>
+                    <input type="range" min="15000" max="50000" step="5000" value="30000" oninput="updateQuotaSimulation(this.value)" class="input-quota-range w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg">
+                    <div class="flex justify-between text-[11px] text-slate-400 font-medium">
+                        <span>15k (Ketat)</span>
+                        <span>30k (Normal)</span>
+                        <span>50k (Penuh)</span>
+                    </div>
+                </div>
+
+                <!-- Farmer List -->
+                <div class="space-y-2.5">
+                    <div class="text-xs font-bold text-slate-200 flex items-center justify-between">
+                        <span>Alokasi Anggota Koperasi:</span>
+                        <button type="button" class="text-cyan-400 text-xs font-semibold hover:underline flex items-center gap-1 cursor-pointer" onclick="showExplainabilityModal()">
+                            <i class="fa-solid fa-circle-info"></i> Dasar Rumus AI
+                        </button>
+                    </div>
+
+                    <div class="allocation-list space-y-2.5"></div>
+                </div>
+
+                <!-- Action Button -->
+                <button onclick="approveAllocation()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-extrabold text-xs sm:text-sm hover:brightness-110 active:scale-98 transition flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fa-solid fa-check-double text-base"></i> Kunci & Terbitkan Hasil Alokasi
+                </button>
+            </div>
+
+            <!-- TAB 2: PASGAR SCORE -->
+            <div class="tab-content-pasgar hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-star-half-stroke text-amber-400"></i> Pasgar Score Intelligence
+                        </h4>
+                        <p class="text-xs text-slate-300 mt-0.5">Uji kualitas fisik DOC saat tiba</p>
+                    </div>
+                    <span class="pasgar-grade-pill text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-extrabold">Grade A Prima</span>
+                </div>
+
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-lg">
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Pasgar Score</span>
+                        <div class="text-3xl font-extrabold text-emerald-400 font-sans mt-0.5 total-pasgar-val">9.5 / 10</div>
+                        <span class="text-xs text-emerald-300 font-bold pasgar-verdict">Kualitas Bibit Sangat Bagus</span>
+                    </div>
+                    <div class="w-12 h-12 rounded-full border-4 border-emerald-400 flex items-center justify-center bg-slate-950 text-emerald-400 text-xl shadow">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white">1. Refleks Balik</span>
+                            <p class="text-[11px] text-slate-400">&lt; 2 detik</p>
+                        </div>
+                        <select onchange="calcPasgar(this)" class="pasgar-refleks bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2 py-1 text-xs">
+                            <option value="2.0">Cepat &lt;2s (+2.0)</option>
+                            <option value="1.0">Lambat 2-4s (+1.0)</option>
+                            <option value="0.0">Lesu &gt;4s (0.0)</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white">2. Kondisi Pusar</span>
+                            <p class="text-[11px] text-slate-400">Tertutup bersih</p>
+                        </div>
+                        <select onchange="calcPasgar(this)" class="pasgar-pusar bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2 py-1 text-xs">
+                            <option value="2.0">Tertutup Bersih (+2.0)</option>
+                            <option value="1.0">Kerak Kecil (+1.0)</option>
+                            <option value="0.0">Terbuka/Basah (0.0)</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white">3. Kaki & Sendi</span>
+                            <p class="text-[11px] text-slate-400">Lembab halus</p>
+                        </div>
+                        <select onchange="calcPasgar(this)" class="pasgar-kaki bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2 py-1 text-xs">
+                            <option value="2.0">Segar & Halus (+2.0)</option>
+                            <option value="1.0">Sedikit Kering (+1.0)</option>
+                            <option value="0.0">Memar Merah (0.0)</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white">4. Paruh & Mata</span>
+                            <p class="text-[11px] text-slate-400">Bulat cerah</p>
+                        </div>
+                        <select onchange="calcPasgar(this)" class="pasgar-paruh bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2 py-1 text-xs">
+                            <option value="2.0">Cerah Sempurna (+2.0)</option>
+                            <option value="1.0">Sedikit Kerak (+1.0)</option>
+                            <option value="0.0">Sayu/Lendir (0.0)</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white">5. Kuning Telur</span>
+                            <p class="text-[11px] text-slate-400">Empuk terserap</p>
+                        </div>
+                        <select onchange="calcPasgar(this)" class="pasgar-perut bg-slate-800 text-white font-bold border border-slate-600 rounded-lg px-2 py-1 text-xs">
+                            <option value="1.5">Empuk & Rata (+1.5)</option>
+                            <option value="0.8">Agak Keras (+0.8)</option>
+                            <option value="0.0">Bengkak Keras (0.0)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="savePasgarAudit()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs hover:brightness-110 transition flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Simpan Hasil Uji ke Audit Trail
+                </button>
+            </div>
+
+            <!-- TAB 3: HATCHERY MATCHING -->
+            <div class="tab-content-matching hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass-chart text-cyan-400"></i> Rekomendasi Hatchery
+                        </h4>
+                        <p class="text-xs text-slate-300 mt-0.5">Pencocokan multi-kriteria</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="glass-card p-3.5 rounded-xl border border-amber-400/60 relative overflow-hidden shadow-lg">
+                        <div class="absolute -right-7 top-3 bg-amber-400 text-slate-950 text-[9px] font-black px-7 py-0.5 rotate-45 uppercase">Best Match</div>
+                        <div>
+                            <h5 class="font-extrabold text-white text-xs sm:text-sm">PT Charoen Pokphand Jaya</h5>
+                            <p class="text-[11px] text-slate-300 mt-0.5"><i class="fa-solid fa-location-dot text-amber-400 mr-1"></i> Subang (42 km • 1.5 Jam)</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 mt-2.5 text-center text-xs">
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-700">
+                                <span class="text-slate-400 text-[10px]">Harga</span>
+                                <div class="font-bold text-white text-xs mt-0.5">Rp 6.850</div>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-700">
+                                <span class="text-slate-400 text-[10px]">Pasgar</span>
+                                <div class="font-bold text-emerald-400 text-xs mt-0.5">9.6 / 10</div>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-700">
+                                <span class="text-slate-400 text-[10px]">Survival</span>
+                                <div class="font-bold text-cyan-300 text-xs mt-0.5">98.4%</div>
+                            </div>
+                        </div>
+                        <button onclick="selectHatchery('PT Charoen Pokphand Jaya')" class="w-full mt-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow">
+                            Pilih Sebagai Rekomendasi
+                        </button>
+                    </div>
+
+                    <div class="glass-card p-3.5 rounded-xl border border-slate-700 shadow-md">
+                        <div>
+                            <h5 class="font-extrabold text-white text-xs sm:text-sm">PT Japfa Comfeed Unit Purwakarta</h5>
+                            <p class="text-[11px] text-slate-300 mt-0.5"><i class="fa-solid fa-location-dot text-cyan-400 mr-1"></i> Purwakarta (68 km • 2.2 Jam)</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 mt-2.5 text-center text-xs">
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-700">
+                                <span class="text-slate-400 text-[10px]">Harga</span>
+                                <div class="font-bold text-white text-xs mt-0.5">Rp 6.700</div>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-700">
+                                <span class="text-slate-400 text-[10px]">Pasgar</span>
+                                <div class="font-bold text-emerald-400 text-xs mt-0.5">9.2 / 10</div>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-700">
+                                <span class="text-slate-400 text-[10px]">Survival</span>
+                                <div class="font-bold text-cyan-300 text-xs mt-0.5">97.8%</div>
+                            </div>
+                        </div>
+                        <button onclick="selectHatchery('PT Japfa Comfeed Unit Purwakarta')" class="w-full mt-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition">
+                            Bandingkan Penawaran
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: BEP CALCULATOR -->
+            <div class="tab-content-bep hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-calculator text-emerald-400"></i> BEP & Chick-In Decision
+                        </h4>
+                        <p class="text-xs text-slate-300 mt-0.5">Isi sekarang atau tunda?</p>
+                    </div>
+                </div>
+
+                <div class="bep-decision-banner bg-emerald-500/20 border border-emerald-400/50 p-3.5 rounded-xl flex items-center gap-3 shadow">
+                    <div class="w-9 h-9 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-lg flex-shrink-0">
+                        <i class="fa-solid fa-thumbs-up"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-extrabold text-emerald-300 uppercase tracking-wide">REKOMENDASI: CHICK-IN SEKARANG</div>
+                        <div class="text-[11px] text-slate-200 mt-0.5">Margin laba aman (+Rp 2.400 / kg)</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                        <span class="text-slate-200 font-semibold">Harga DOC:</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-slate-400">Rp</span>
+                            <input type="number" value="6850" oninput="calcBEP(this)" class="calc-doc-price w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-right text-white font-extrabold text-xs">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                        <span class="text-slate-200 font-semibold">Harga Pakan:</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-slate-400">Rp/kg</span>
+                            <input type="number" value="8900" oninput="calcBEP(this)" class="calc-feed-price w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-right text-white font-extrabold text-xs">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                        <span class="text-slate-200 font-semibold">Target FCR:</span>
+                        <input type="number" step="0.05" value="1.55" oninput="calcBEP(this)" class="calc-fcr w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-right text-white font-extrabold text-xs">
+                    </div>
+
+                    <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                        <span class="text-slate-200 font-semibold">Harga Livebird:</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-slate-400">Rp/kg</span>
+                            <input type="number" value="21500" oninput="calcBEP(this)" class="calc-livebird-price w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-right text-emerald-400 font-extrabold text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700 space-y-1.5 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-300">Biaya Pokok (HPP):</span>
+                        <span class="calc-bep-val font-extrabold text-white text-sm font-sans">Rp 19.100 / kg</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-300">Margin Laba:</span>
+                        <span class="calc-margin-val font-extrabold text-emerald-400 text-sm font-sans">+Rp 2.400 / kg (+12.5%)</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
 
     <!-- Explainability Formula Modal -->
     <div id="modal-explain" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="glass-panel p-6 rounded-2xl max-w-lg w-full border border-cyan-400 shadow-2xl">
+        <div class="glass-panel p-5 sm:p-6 rounded-2xl max-w-lg w-full border border-cyan-400 shadow-2xl">
             <div class="flex items-center justify-between pb-3 border-b border-slate-700">
-                <h3 class="font-extrabold text-white text-base flex items-center gap-2">
-                    <i class="fa-solid fa-code-compare text-cyan-400"></i> Rumus & Transparansi Alokasi DOCI
+                <h3 class="font-extrabold text-white text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-code-compare text-cyan-400"></i> Rumus Alokasi DOCI
                 </h3>
                 <button onclick="closeExplainModal()" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
             </div>
-            <div class="mt-4 space-y-3.5 text-xs text-slate-200 leading-relaxed">
-                <p>Setiap rekomendasi kuota DOC dihitung secara objektif menggunakan formulasi multivariat:</p>
-                
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-cyan-300 text-xs">
-                    Skor_Prioritas = (W1 × Rasio_Kapasitas) + (W2 × Realisasi_Historis) + (W3 × Skor_Kesiapan_Kandang)
+            <div class="mt-4 space-y-3 text-xs text-slate-200 leading-relaxed">
+                <p>Formula pembagian kuota multivariat objektif:</p>
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-700 font-mono text-cyan-300 text-[11px]">
+                    Skor = (40% × Kapasitas) + (35% × Realisasi) + (25% × Kesiapan)
                 </div>
-
-                <div class="space-y-2 pt-1 font-medium">
-                    <div class="flex justify-between"><span class="text-slate-300">• Bobot W1 (Kapasitas Kandang Terverifikasi):</span> <strong class="text-white font-extrabold">40%</strong></div>
-                    <div class="flex justify-between"><span class="text-slate-300">• Bobot W2 (Tingkat Realisasi Siklus Sebelumnya):</span> <strong class="text-white font-extrabold">35%</strong></div>
-                    <div class="flex justify-between"><span class="text-slate-300">• Bobot W3 (Skor Kesiapan Kandang / Sensor):</span> <strong class="text-white font-extrabold">25%</strong></div>
-                </div>
-
-                <div class="p-3 rounded-lg bg-amber-400/10 border border-amber-400/40 text-amber-200 text-xs">
-                    <i class="fa-solid fa-triangle-exclamation mr-1.5 text-amber-300"></i> <strong>Catatan Integritas:</strong> Sistem DOCI adalah <em>Decision Support System</em>. Pengurus asosiasi atau koperasi tetap memegang kendali persetujuan akhir dan seluruh perubahan kuota tercatat di <em>Audit Log</em>.
+                <div class="p-2.5 rounded-lg bg-amber-400/10 border border-amber-400/40 text-amber-200 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation mr-1.5 text-amber-300"></i> DOCI adalah <em>Decision Support System</em>. Keputusan final tetap disahkan pengurus koperasi.
                 </div>
             </div>
-            <button onclick="closeExplainModal()" class="mt-5 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition">
+            <button onclick="closeExplainModal()" class="mt-4 w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition">
                 Tutup Penjelasan
             </button>
         </div>
@@ -716,50 +867,41 @@
 
     <!-- Product Framework & About Modal -->
     <div id="modal-info" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="glass-panel p-6 rounded-2xl max-w-xl w-full border border-amber-400 shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div class="glass-panel p-5 sm:p-6 rounded-2xl max-w-xl w-full border border-amber-400 shadow-2xl max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-700">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center text-slate-950 font-black">
-                        <i class="fa-solid fa-feather-pointed text-lg"></i>
-                    </div>
+                    <img src="logo-doci.jpg" alt="DOCI Logo" class="w-10 h-10 rounded-xl object-cover shadow border border-amber-400/60 glow-amber flex-shrink-0">
                     <div>
-                        <h3 class="font-extrabold text-white text-base">Tentang DOCI (DOC Intelligence Assistant)</h3>
+                        <h3 class="font-extrabold text-white text-sm sm:text-base">DOCI (DOC Intelligence Assistant)</h3>
                         <p class="text-xs text-amber-300 font-semibold">Transparan. Cerdas. Berkelanjutan.</p>
                     </div>
                 </div>
                 <button onclick="closeInfoModal()" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
             </div>
             <div class="mt-4 space-y-3.5 text-xs text-slate-200 leading-relaxed">
-                <p><strong>DOCI</strong> adalah platform digital dan 3D Digital Twin yang membantu peternak broiler mandiri serta asosiasi/koperasi mengelola kebutuhan dan distribusi <em>Day-Old Chick</em> (DOC) secara adil, terukur, dan berbasis data.</p>
+                <p><strong>DOCI</strong> adalah platform digital dan 3D Digital Twin yang membantu peternak broiler mandiri dan koperasi mengelola alokasi DOC, kesiapan kandang, Pasgar Score, dan perencanaan siklus broiler.</p>
                 
-                <h4 class="font-extrabold text-white text-sm border-l-2 border-amber-400 pl-2">4 Pilar Nilai DOCI:</h4>
-                <div class="grid grid-cols-2 gap-2.5">
-                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
-                        <span class="font-extrabold text-amber-400 block mb-0.5"><i class="fa-solid fa-check text-xs"></i> Transparansi Alokasi</span>
-                        <p class="text-xs text-slate-300">Pembagian kuota berbasis data riil tanpa tebak-tebakan.</p>
+                <h4 class="font-extrabold text-white text-xs sm:text-sm border-l-2 border-amber-400 pl-2">4 Pilar Nilai:</h4>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-amber-400 block mb-0.5">Transparansi Alokasi</span>
+                        <p class="text-[11px] text-slate-300">Kuota berbasis riil tanpa tebak-tebakan.</p>
                     </div>
-                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
-                        <span class="font-extrabold text-cyan-400 block mb-0.5"><i class="fa-solid fa-brain text-xs"></i> Keputusan Lebih Tepat</span>
-                        <p class="text-xs text-slate-300">Kalkulator BEP & sinyal harga pasar sebelum chick-in.</p>
+                    <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-cyan-400 block mb-0.5">Keputusan Tepat</span>
+                        <p class="text-[11px] text-slate-300">Simulasi BEP sebelum chick-in.</p>
                     </div>
-                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
-                        <span class="font-extrabold text-emerald-400 block mb-0.5"><i class="fa-solid fa-warehouse text-xs"></i> Kandang Lebih Siap</span>
-                        <p class="text-xs text-slate-300">Cek skor kesiapan kandang via sensor IoT terhubung.</p>
+                    <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-emerald-400 block mb-0.5">Kandang Siap</span>
+                        <p class="text-[11px] text-slate-300">Skor kesiapan via sensor IoT.</p>
                     </div>
-                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-700">
-                        <span class="font-extrabold text-orange-400 block mb-0.5"><i class="fa-solid fa-arrow-trend-up text-xs"></i> Kualitas Terpantau</span>
-                        <p class="text-xs text-slate-300">Evaluasi Pasgar Score & riwayat performa hatchery.</p>
+                    <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-700">
+                        <span class="font-extrabold text-orange-400 block mb-0.5">Kualitas Terpantau</span>
+                        <p class="text-[11px] text-slate-300">Evaluasi Pasgar Score historis.</p>
                     </div>
                 </div>
-
-                <h4 class="font-extrabold text-white text-sm border-l-2 border-cyan-400 pl-2">Navigasi 3D Digital Twin:</h4>
-                <ul class="list-disc list-inside space-y-1.5 text-slate-300 text-xs">
-                    <li><strong>Drag Mouse Kiri / Sentuh:</strong> Putar sudut pandang 3D (Orbit Controls).</li>
-                    <li><strong>Scroll / Pinch:</strong> Zoom in & zoom out kandang.</li>
-                    <li><strong>Klik Label Hotspot 3D:</strong> Arahkan kamera otomatis ke komponen kandang & cara kerjanya.</li>
-                </ul>
             </div>
-            <button onclick="closeInfoModal()" class="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs transition shadow-lg">
+            <button onclick="closeInfoModal()" class="mt-5 w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-extrabold text-xs transition shadow-lg">
                 Mengerti & Mulai Eksplorasi
             </button>
         </div>
@@ -781,7 +923,15 @@
         let camLookAtTarget = new THREE.Vector3(0, 0.8, 0);
         let camMoving = false;
 
-        // Sound System via Web Audio API (Baby chick chirping synthesizer)
+        // Responsive Camera FOV Calculation
+        function getCameraFov(aspect) {
+            if (aspect < 0.6) return 66; // Portrait tall phone (iPhone / Android)
+            if (aspect < 0.8) return 58; // Standard mobile portrait
+            if (aspect < 1.1) return 50; // Tablet portrait / square
+            return 45; // Landscape Desktop
+        }
+
+        // Web Audio Synthesizer for Chick Chirps
         let soundActive = true;
         let audioCtx = null;
 
@@ -830,7 +980,7 @@
             } catch(e) {}
         }
 
-        // Hotspots Data with Leader Lines & Detailed Descriptions
+        // Hotspots Data
         const hotspotsData = [
             {
                 id: 'spot-truck',
@@ -850,7 +1000,7 @@
                 pos: new THREE.Vector3(-3.2, 0.9, 4.0),
                 camPos: new THREE.Vector3(-2.0, 2.2, 6.2),
                 camTarget: new THREE.Vector3(-3.2, 0.9, 4.0),
-                desc: 'Pemeriksaan 5 parameter Pasgar (refleks balik, pusar, kaki, paruh, sisa kuning telur) sebelum masuk kandang.'
+                desc: 'Pemeriksaan 5 parameter Pasgar sebelum masuk kandang.'
             },
             {
                 id: 'spot-brooder',
@@ -870,7 +1020,7 @@
                 pos: new THREE.Vector3(2.4, 1.4, -0.5),
                 camPos: new THREE.Vector3(3.2, 2.8, 2.8),
                 camTarget: new THREE.Vector3(2.4, 0.8, -0.5),
-                desc: 'Piring pakan (pan feeder) otomatis & puting air minum (nipple drinker) higienis bebas bakteri.'
+                desc: 'Piring pakan otomatis & puting air minum higienis bebas bakteri.'
             },
             {
                 id: 'spot-blower',
@@ -880,7 +1030,7 @@
                 pos: new THREE.Vector3(0, 2.2, -6.8),
                 camPos: new THREE.Vector3(0, 3.5, -2.5),
                 camTarget: new THREE.Vector3(0, 1.8, -6.8),
-                desc: '4 Unit Kipas Blower 50" membuang gas amonia keluar kandang untuk menjaga udara tetap segar.'
+                desc: '4 Unit Kipas Blower 50" membuang gas amonia keluar kandang.'
             },
             {
                 id: 'spot-iot',
@@ -890,7 +1040,7 @@
                 pos: new THREE.Vector3(5.2, 1.6, 0),
                 camPos: new THREE.Vector3(4.0, 2.8, 3.2),
                 camTarget: new THREE.Vector3(5.2, 1.4, 0),
-                desc: 'Multi-sensor nirkabel memancarkan data suhu, kelembaban, dan amonia ke AI DOCI secara real-time.'
+                desc: 'Multi-sensor nirkabel memancarkan data suhu, kelembaban, dan amonia real-time.'
             }
         ];
 
@@ -903,20 +1053,39 @@
             { id: 5, name: 'Kemitraan Mandiri Sejati', capacity: 5000, request: 5000, allocated: 3000, readiness: 85, history: 86, priority: 73 }
         ];
 
+        // Mount Dashboard to Desktop & Mobile
+        function mountDashboardUI() {
+            const tpl = document.getElementById('tpl-dashboard');
+            const desktopMount = document.getElementById('dashboard-content-mount');
+            const mobileMount = document.getElementById('mobile-dashboard-mount');
+
+            if (desktopMount) desktopMount.innerHTML = tpl.innerHTML;
+            if (mobileMount) mobileMount.innerHTML = tpl.innerHTML;
+        }
+
         // Initialize Three.js Scene
         function init3D() {
             const container = document.getElementById('canvas-container');
             const w = window.innerWidth;
             const h = window.innerHeight;
+            const aspect = w / h;
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x060f1e);
             scene.fog = new THREE.FogExp2(0x060f1e, 0.024);
 
-            camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-            camera.position.set(0, 8.5, 14.5);
+            camera = new THREE.PerspectiveCamera(getCameraFov(aspect), aspect, 0.1, 100);
+            
+            // Adjust camera position for portrait phones
+            if (aspect < 0.8) {
+                camera.position.set(0, 11.5, 17.5);
+                camTargetPos.set(0, 11.5, 17.5);
+            } else {
+                camera.position.set(0, 8.5, 14.5);
+                camTargetPos.set(0, 8.5, 14.5);
+            }
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
             renderer.setSize(w, h);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
@@ -927,11 +1096,12 @@
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            controls.dampingFactor = 0.06;
+            controls.dampingFactor = 0.08;
             controls.maxPolarAngle = Math.PI / 2 + 0.05;
             controls.minDistance = 3.5;
-            controls.maxDistance = 26;
+            controls.maxDistance = 28;
             controls.target.copy(camLookAtTarget);
+            controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
             controls.addEventListener('start', () => {
                 camMoving = false;
@@ -954,6 +1124,7 @@
 
             window.addEventListener('resize', onWindowResize, false);
 
+            mountDashboardUI();
             renderAllocationTable();
             calcBEP();
         }
@@ -965,8 +1136,8 @@
             dirLight = new THREE.DirectionalLight(0xffedd5, 1.35);
             dirLight.position.set(10, 18, 12);
             dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
             dirLight.shadow.camera.near = 0.5;
             dirLight.shadow.camera.far = 40;
             const d = 14;
@@ -1392,10 +1563,12 @@
             spawnChicks(25);
             playChickChirp();
 
-            const el = document.getElementById('live-doc-count');
-            const current = parseInt(el.innerText.replace(/[^0-9]/g, '')) || 3500;
-            const updated = current + 500;
-            el.innerText = updated.toLocaleString('id-ID') + ' Ekor';
+            const els = document.querySelectorAll('#live-doc-count');
+            els.forEach(el => {
+                const current = parseInt(el.innerText.replace(/[^0-9]/g, '')) || 3500;
+                const updated = current + 500;
+                el.innerText = updated.toLocaleString('id-ID') + ' Ekor';
+            });
 
             showToast('Chick-In Sukses: +500 DOC masuk ke lingkaran pemanas!');
         }
@@ -1410,13 +1583,13 @@
                 el.id = h.id;
                 
                 el.innerHTML = `
-                    <div class="glass-panel px-3.5 py-2 rounded-xl border border-amber-400/60 shadow-2xl flex items-center gap-2.5 text-xs">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                    <div class="glass-panel px-3 py-1.5 rounded-xl border border-amber-400/60 shadow-2xl flex items-center gap-2 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
                         <div>
-                            <div class="font-bold text-white text-xs whitespace-nowrap">${h.name}</div>
-                            <div class="text-[11px] text-slate-300 whitespace-nowrap">${h.badge}</div>
+                            <div class="font-bold text-white text-[11px] sm:text-xs whitespace-nowrap">${h.name}</div>
+                            <div class="text-[9px] sm:text-[10px] text-slate-300 whitespace-nowrap">${h.badge}</div>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-xs text-amber-400"></i>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-amber-400"></i>
                     </div>
                     <div class="pulse-beacon bg-amber-400"></div>
                 `;
@@ -1475,15 +1648,16 @@
                 const btn = document.getElementById(`btn-cam-${p}`);
                 if (btn) {
                     if (p === preset) {
-                        btn.className = "px-3.5 py-2 rounded-lg bg-amber-400 text-slate-950 font-extrabold shadow transition";
+                        btn.className = "px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-extrabold shadow transition";
                     } else {
-                        btn.className = "px-3 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition";
+                        btn.className = "px-2.5 py-1.5 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 transition";
                     }
                 }
             });
 
+            const isMobile = window.innerWidth < 768;
             if (preset === 'overview') {
-                flyTo(new THREE.Vector3(0, 8.5, 14.5), new THREE.Vector3(0, 0.8, 0));
+                flyTo(isMobile ? new THREE.Vector3(0, 11.5, 17.5) : new THREE.Vector3(0, 8.5, 14.5), new THREE.Vector3(0, 0.8, 0));
             } else if (preset === 'brooder') {
                 flyTo(new THREE.Vector3(0, 4.2, 5.0), new THREE.Vector3(0, 0.6, 0));
                 switchTab('allocation');
@@ -1498,10 +1672,12 @@
         function activateWorkflowStep(stepNum) {
             for (let i = 1; i <= 6; i++) {
                 const btn = document.getElementById(`step-btn-${i}`);
-                if (i === stepNum) {
-                    btn.className = "workflow-btn px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-1.5 shadow glow-amber";
-                } else {
-                    btn.className = "workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5";
+                if (btn) {
+                    if (i === stepNum) {
+                        btn.className = "workflow-btn px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-1.5 shadow glow-amber";
+                    } else {
+                        btn.className = "workflow-btn px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5";
+                    }
                 }
             }
 
@@ -1514,6 +1690,23 @@
                 hotspotsData[5]
             ];
             focusHotspot(spotMap[stepNum - 1]);
+        }
+
+        // Mobile Sheet Logic
+        function openMobileSheet(sheetId) {
+            closeMobileSheets();
+            const sheet = document.getElementById(sheetId);
+            if (sheet) {
+                sheet.classList.remove('translate-y-full');
+                sheet.classList.add('translate-y-0');
+            }
+        }
+
+        function closeMobileSheets() {
+            document.querySelectorAll('.mobile-sheet').forEach(s => {
+                s.classList.remove('translate-y-0');
+                s.classList.add('translate-y-full');
+            });
         }
 
         function toggleDayNight() {
@@ -1554,9 +1747,15 @@
         function onWindowResize() {
             const w = window.innerWidth;
             const h = window.innerHeight;
-            camera.aspect = w / h;
+            const aspect = w / h;
+            camera.aspect = aspect;
+            camera.fov = getCameraFov(aspect);
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
+
+            if (w >= 1024) {
+                closeMobileSheets();
+            }
         }
 
         let clock = new THREE.Clock();
@@ -1625,52 +1824,57 @@
         function switchTab(tabId) {
             const tabs = ['allocation', 'pasgar', 'matching', 'bep'];
             tabs.forEach(t => {
-                const btn = document.getElementById(`tab-btn-${t}`);
-                const content = document.getElementById(`tab-content-${t}`);
+                const btns = document.querySelectorAll(`.tab-btn-${t}`);
+                const contents = document.querySelectorAll(`.tab-content-${t}`);
                 if (t === tabId) {
-                    btn.className = "px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-2 whitespace-nowrap shadow";
-                    content.classList.remove('hidden');
+                    btns.forEach(btn => {
+                        btn.className = `tab-btn-${t} px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-extrabold transition flex items-center gap-2 whitespace-nowrap shadow`;
+                    });
+                    contents.forEach(content => content.classList.remove('hidden'));
                 } else {
-                    btn.className = "px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap";
-                    content.classList.add('hidden');
+                    btns.forEach(btn => {
+                        btn.className = `tab-btn-${t} px-3.5 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition flex items-center gap-2 whitespace-nowrap`;
+                    });
+                    contents.forEach(content => content.classList.add('hidden'));
                 }
             });
         }
 
-        // Clean, High-Contrast Farmer Allocation Cards (100% Readable)
         function renderAllocationTable() {
-            const container = document.getElementById('allocation-list');
-            container.innerHTML = '';
-
-            farmersData.forEach(f => {
-                const item = document.createElement('div');
-                item.className = 'glass-card p-3.5 rounded-xl border border-slate-700 hover:border-amber-400/60 transition shadow-sm';
-                item.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="font-extrabold text-white text-sm">${f.name}</span>
-                            <span class="bg-amber-400 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-md shadow-sm">Skor ${f.priority}</span>
+            const containers = document.querySelectorAll('.allocation-list');
+            containers.forEach(container => {
+                container.innerHTML = '';
+                farmersData.forEach(f => {
+                    const item = document.createElement('div');
+                    item.className = 'glass-card p-3 rounded-xl border border-slate-700 hover:border-amber-400/60 transition shadow-sm';
+                    item.innerHTML = `
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-white text-xs sm:text-sm">${f.name}</span>
+                                <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-1.5 py-0.2 rounded shadow-sm">Skor ${f.priority}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-300 font-medium">Alokasi:</span>
+                                <div class="text-xs sm:text-sm font-extrabold text-emerald-400 font-sans">${f.allocated.toLocaleString('id-ID')} DOC</div>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <span class="text-xs text-slate-300 font-medium">Alokasi Diterima:</span>
-                            <div class="text-base font-extrabold text-emerald-400 font-sans tracking-wide">${f.allocated.toLocaleString('id-ID')} DOC</div>
+                        <div class="grid grid-cols-4 gap-1 text-[11px] text-slate-300 pt-1.5 border-t border-slate-700/70">
+                            <div>Kapasitas: <strong class="text-white">${f.capacity.toLocaleString('id-ID')}</strong></div>
+                            <div>Kesiapan: <strong class="text-emerald-400">${f.readiness}%</strong></div>
+                            <div>Riwayat: <strong class="text-cyan-300">${f.history}%</strong></div>
+                            <div class="text-right">Ajuan: <strong class="text-slate-200">${f.request.toLocaleString('id-ID')}</strong></div>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-4 gap-1 text-xs text-slate-300 pt-2 border-t border-slate-700/70">
-                        <div>Kapasitas: <strong class="text-white">${f.capacity.toLocaleString('id-ID')}</strong></div>
-                        <div>Kesiapan: <strong class="text-emerald-400">${f.readiness}%</strong></div>
-                        <div>Riwayat: <strong class="text-cyan-300">${f.history}%</strong></div>
-                        <div class="text-right">Ajuan: <strong class="text-slate-200">${f.request.toLocaleString('id-ID')}</strong></div>
-                    </div>
-                `;
-                container.appendChild(item);
+                    `;
+                    container.appendChild(item);
+                });
             });
         }
 
         function updateQuotaSimulation(newQuota) {
             const totalAvail = parseInt(newQuota);
-            document.getElementById('slider-quota-label').innerText = totalAvail.toLocaleString('id-ID') + ' DOC';
-            document.getElementById('macro-quota-avail').innerText = totalAvail.toLocaleString('id-ID');
+            document.querySelectorAll('.slider-quota-label').forEach(el => el.innerText = totalAvail.toLocaleString('id-ID') + ' DOC');
+            document.querySelectorAll('.macro-quota-avail').forEach(el => el.innerText = totalAvail.toLocaleString('id-ID'));
+            document.querySelectorAll('.input-quota-range').forEach(el => el.value = totalAvail);
 
             const totalScore = farmersData.reduce((acc, cur) => acc + (cur.priority * cur.request), 0);
             farmersData.forEach(f => {
@@ -1682,42 +1886,50 @@
             renderAllocationTable();
         }
 
-        function calcPasgar() {
-            const p1 = parseFloat(document.getElementById('pasgar-refleks').value);
-            const p2 = parseFloat(document.getElementById('pasgar-pusar').value);
-            const p3 = parseFloat(document.getElementById('pasgar-kaki').value);
-            const p4 = parseFloat(document.getElementById('pasgar-paruh').value);
-            const p5 = parseFloat(document.getElementById('pasgar-perut').value);
+        function calcPasgar(triggerEl) {
+            const scope = triggerEl ? triggerEl.closest('.tab-content-pasgar') : document;
+            const p1 = parseFloat(scope.querySelector('.pasgar-refleks')?.value || 2.0);
+            const p2 = parseFloat(scope.querySelector('.pasgar-pusar')?.value || 2.0);
+            const p3 = parseFloat(scope.querySelector('.pasgar-kaki')?.value || 2.0);
+            const p4 = parseFloat(scope.querySelector('.pasgar-paruh')?.value || 2.0);
+            const p5 = parseFloat(scope.querySelector('.pasgar-perut')?.value || 1.5);
 
             const total = (p1 + p2 + p3 + p4 + p5).toFixed(1);
-            document.getElementById('total-pasgar-val').innerText = `${total} / 10`;
 
-            const pill = document.getElementById('pasgar-grade-pill');
-            const verdict = document.getElementById('pasgar-verdict');
+            document.querySelectorAll('.total-pasgar-val').forEach(el => el.innerText = `${total} / 10`);
+            document.querySelectorAll('.pasgar-grade-pill').forEach(pill => {
+                if (total >= 9.0) {
+                    pill.className = "pasgar-grade-pill text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-extrabold";
+                    pill.innerText = "Grade A Prima";
+                } else if (total >= 7.5) {
+                    pill.className = "pasgar-grade-pill text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 font-extrabold";
+                    pill.innerText = "Grade B Standar";
+                } else {
+                    pill.className = "pasgar-grade-pill text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-400/50 font-extrabold";
+                    pill.innerText = "Grade C Rawan";
+                }
+            });
 
-            if (total >= 9.0) {
-                pill.className = "text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-extrabold";
-                pill.innerText = "Grade A Prima";
-                verdict.innerText = "Kualitas Bibit Sangat Bagus & Seragam";
-                verdict.className = "text-xs text-emerald-300 font-bold";
-            } else if (total >= 7.5) {
-                pill.className = "text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 font-extrabold";
-                pill.innerText = "Grade B Standar";
-                verdict.innerText = "Kualitas Cukup, Perlu Ekstra Vitamin";
-                verdict.className = "text-xs text-amber-300 font-bold";
-            } else {
-                pill.className = "text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-400/50 font-extrabold";
-                pill.innerText = "Grade C Rawan";
-                verdict.innerText = "Resiko Mortalitas Tinggi! Pertimbangkan Klaim";
-                verdict.className = "text-xs text-red-300 font-bold";
-            }
+            document.querySelectorAll('.pasgar-verdict').forEach(verdict => {
+                if (total >= 9.0) {
+                    verdict.innerText = "Kualitas Bibit Sangat Bagus & Seragam";
+                    verdict.className = "pasgar-verdict text-xs text-emerald-300 font-bold";
+                } else if (total >= 7.5) {
+                    verdict.innerText = "Kualitas Cukup, Perlu Ekstra Vitamin";
+                    verdict.className = "pasgar-verdict text-xs text-amber-300 font-bold";
+                } else {
+                    verdict.innerText = "Resiko Mortalitas Tinggi! Pertimbangkan Klaim";
+                    verdict.className = "pasgar-verdict text-xs text-red-300 font-bold";
+                }
+            });
         }
 
-        function calcBEP() {
-            const docPrice = parseFloat(document.getElementById('calc-doc-price').value) || 6850;
-            const feedPrice = parseFloat(document.getElementById('calc-feed-price').value) || 8900;
-            const fcr = parseFloat(document.getElementById('calc-fcr').value) || 1.55;
-            const livebirdPrice = parseFloat(document.getElementById('calc-livebird-price').value) || 21500;
+        function calcBEP(triggerEl) {
+            const scope = triggerEl ? triggerEl.closest('.tab-content-bep') : document;
+            const docPrice = parseFloat(scope.querySelector('.calc-doc-price')?.value || 6850);
+            const feedPrice = parseFloat(scope.querySelector('.calc-feed-price')?.value || 8900);
+            const fcr = parseFloat(scope.querySelector('.calc-fcr')?.value || 1.55);
+            const livebirdPrice = parseFloat(scope.querySelector('.calc-livebird-price')?.value || 21500);
 
             const targetWeightKg = 1.9;
             const totalFeedCost = targetWeightKg * fcr * feedPrice;
@@ -1727,63 +1939,31 @@
             const bepPerKg = Math.round(totalCostPerBird / targetWeightKg);
             const marginPerKg = Math.round(livebirdPrice - bepPerKg);
 
-            document.getElementById('calc-bep-val').innerText = `Rp ${bepPerKg.toLocaleString('id-ID')} / kg`;
-
-            const marginEl = document.getElementById('calc-margin-val');
-            const banner = document.getElementById('bep-decision-banner');
-
-            if (marginPerKg >= 1500) {
-                marginEl.innerText = `+Rp ${marginPerKg.toLocaleString('id-ID')} / kg (Untung Optimal)`;
-                marginEl.className = "font-extrabold text-emerald-400 text-sm font-sans";
-                banner.className = "bg-emerald-500/20 border border-emerald-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow";
-                banner.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-xl">
-                        <i class="fa-solid fa-thumbs-up"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-extrabold text-emerald-300 uppercase tracking-wide">REKOMENDASI: CHICK-IN SEKARANG</div>
-                        <div class="text-xs text-slate-200 mt-0.5">Margin laba diproyeksikan aman (+Rp ${marginPerKg.toLocaleString('id-ID')} / kg).</div>
-                    </div>
-                `;
-            } else if (marginPerKg >= 0) {
-                marginEl.innerText = `+Rp ${marginPerKg.toLocaleString('id-ID')} / kg (Margin Tipis)`;
-                marginEl.className = "font-extrabold text-amber-400 text-sm font-sans";
-                banner.className = "bg-amber-500/20 border border-amber-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow";
-                banner.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-extrabold text-amber-300 uppercase tracking-wide">REKOMENDASI: PERHATIKAN EFISIENSI FCR</div>
-                        <div class="text-xs text-slate-200 mt-0.5">Harga jual mendekati titik impas. Jaga FCR ketat &lt; 1.5.</div>
-                    </div>
-                `;
-            } else {
-                marginEl.innerText = `-Rp ${Math.abs(marginPerKg).toLocaleString('id-ID')} / kg (Potensi Rugi)`;
-                marginEl.className = "font-extrabold text-red-400 text-sm font-sans";
-                banner.className = "bg-red-500/20 border border-red-400/50 p-3.5 rounded-xl flex items-center gap-3.5 shadow";
-                banner.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-red-400 text-slate-950 flex items-center justify-center font-black text-xl">
-                        <i class="fa-solid fa-hand"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-extrabold text-red-300 uppercase tracking-wide">REKOMENDASI: TUNDA SIKLUS CHICK-IN</div>
-                        <div class="text-xs text-slate-200 mt-0.5">Harga livebird pasar di bawah biaya produksi pokok!</div>
-                    </div>
-                `;
-            }
+            document.querySelectorAll('.calc-bep-val').forEach(el => el.innerText = `Rp ${bepPerKg.toLocaleString('id-ID')} / kg`);
+            document.querySelectorAll('.calc-margin-val').forEach(el => {
+                if (marginPerKg >= 1500) {
+                    el.innerText = `+Rp ${marginPerKg.toLocaleString('id-ID')} / kg (+12.5%)`;
+                    el.className = "calc-margin-val font-extrabold text-emerald-400 text-sm font-sans";
+                } else if (marginPerKg >= 0) {
+                    el.innerText = `+Rp ${marginPerKg.toLocaleString('id-ID')} / kg (Tipis)`;
+                    el.className = "calc-margin-val font-extrabold text-amber-400 text-sm font-sans";
+                } else {
+                    el.innerText = `-Rp ${Math.abs(marginPerKg).toLocaleString('id-ID')} / kg (Rugi)`;
+                    el.className = "calc-margin-val font-extrabold text-red-400 text-sm font-sans";
+                }
+            });
         }
 
         function selectHatchery(name) {
-            showToast(`Hatchery Terpilih: ${name}. Sistem memperbarui estimasi tiba DOC.`);
+            showToast(`Hatchery Terpilih: ${name}`);
         }
 
         function approveAllocation() {
-            showToast('Alokasi Kuota Sukses Diterbitkan! Notifikasi terkirim ke WhatsApp 5 Peternak.');
+            showToast('Alokasi Kuota Sukses Diterbitkan!');
         }
 
         function savePasgarAudit() {
-            showToast('Hasil Pasgar Score 9.5 Berhasil Disimpan ke Audit Trail Hatchery!');
+            showToast('Hasil Pasgar Score Berhasil Disimpan!');
         }
 
         function showExplainabilityModal() {
@@ -1802,12 +1982,12 @@
 
         function showToast(msg) {
             const toast = document.createElement('div');
-            toast.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2.5 rounded-2xl border border-amber-400/80 shadow-2xl text-xs font-bold text-amber-300 flex items-center gap-2 animate-bounce';
+            toast.className = 'fixed top-14 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2 rounded-2xl border border-amber-400/80 shadow-2xl text-xs font-bold text-amber-300 flex items-center gap-2 animate-bounce';
             toast.innerHTML = `<i class="fa-solid fa-bell text-amber-400"></i> ${msg}`;
             document.body.appendChild(toast);
             setTimeout(() => {
                 toast.remove();
-            }, 3500);
+            }, 3200);
         }
 
         window.addEventListener('load', () => {
